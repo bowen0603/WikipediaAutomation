@@ -5,7 +5,12 @@ from mw.xml_dump import functions
 import difflib
 ###############################################################
 ## Code Description
-##
+## Steps of diff operation(function "parse_file")
+#  1. split the whole revision content to sentenses in function "useful_text", and leave out the sentences without letters in function "is_useful"
+#  2. in one revision of one page, "revtext" is the set of all the sentenses of last revision text, 
+#  "current_revtext" is the set of all the sentenses of the current revision text
+#  3. in function "diff_sentenses", compare "revtext" and "current_revtext", and output the diff result
+#  4. the function "diff_text" is used to compare two content by letters not sentenses, it is used in the old diff operation not in the current one.
 ## the code take in one meta dump page current file as input for parsing.
 ## it parses all the revision record in the file ignoring those edited by bots, and anonymous editors.
 ## it parses handles all the namespaces, but will not extract the particular editing texts.

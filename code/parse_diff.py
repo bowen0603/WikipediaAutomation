@@ -98,8 +98,10 @@ def is_useful(str):
             return 1
     return 0
 
+#diff operation
 def diff_sentences(s1,s2):
     diff_result = ""
+    # in the first loop, if a sentence in s1 can't be found in s2, then output "delete"
     for i in s1:
         flag = 0
         for j in s2:
@@ -108,6 +110,7 @@ def diff_sentences(s1,s2):
                 break
         if(flag == 0):
             diff_result += 'Delete: {}  '.format(i)
+    # in the second loop, if a sentence in s2 can't be found in s1, then output "add"
     for i in s2:
         flag = 0
         for j in s1:
@@ -126,6 +129,7 @@ def useful_text(text):
             result.append(sen)
     return result
 
+#main function
 def parse_file(input=None, output=None, bot_file=None):
 
     #bot_list = load_bots(bot_file)
@@ -141,12 +145,15 @@ def parse_file(input=None, output=None, bot_file=None):
 
         if page.namespace in [1, 3, 5]:
             print("{},{}".format(page.title, page.namespace))
+            #"revtext" is the last revision text, initialized as null
             revtext = []
             for rev in page:
                 from time import mktime, strptime
                 pattern = '%Y%m%d%H%M%S'
                 epoch = int(mktime(strptime(str(rev.timestamp), pattern)))
+                #"current_revtext" is the current revision text(a set of sentences)
                 current_revtext = useful_text(rev.text)
+                #diff operation
                 diff_content = diff_sentences(revtext,current_revtext)
                 record = {"rev_timestamp": epoch,"rev_id": rev.id,"rev_user_text": rev.contributor.user_text,"rev_user_id": rev.contributor.id,"rev_page_title": page.title,"rev_page_id": page.id,"ns": page.namespace,"rev_diff": diff_content}
                 revtext = current_revtext

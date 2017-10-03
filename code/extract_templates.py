@@ -1,3 +1,5 @@
+
+import requests
 # https://en.wikipedia.org/w/api.php?action=help&modules=query%2Bcategorymembers
 # https://en.wikipedia.org/wiki/Special:ApiSandbox#action=query&format=json&list=categorymembers&cmtitle=Category%3AWikiProject+Military+history+templates&cmlimit=500
 
@@ -16,3 +18,138 @@
  # pool.map(parser, args)
 #
 # parser is the single program that process the diff, while args take in the parameters of the files
+
+# TODO: page to start from: wikipedia.org
+
+# dfs each page category to form: template name * template wikiproject * template category * path length
+
+class TemplateExtractor:
+
+    def __init__(self):
+        self.projects = []
+        self.const_non_category = "NONE_CATE"
+        self.template_query = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=categorymembers&cmlimit=500" \
+                    "&cmtitle={}"
+
+    def extract_all_template_wikiprojects(self):
+        #"https://en.wikipedia.org/w/api.php?action=query&format=json&list=users"
+        page_title = "Category:Wikipedia template categories"
+        page_title = "Category:WikiProject templates"
+        cnt_categories = 0
+        fout = open('data/templates.csv', 'w')
+        try:
+            print("***First request***")
+            query = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=categorymembers&cmlimit=500" \
+                    "&cmtitle={}".format(page_title)
+            response = requests.get(query).json()
+            for categorymember in response['query']['categorymembers']:
+                pageid = categorymember['pageid']
+                ns = categorymember['ns']
+                title = categorymember['title']
+                # print(title, file=fout)
+                cnt_categories += 1
+
+                if title.startswith('Category:WikiProject '):
+                    self.projects.append(title)
+
+
+            while 'cmcontinue' in response['continue']:
+                print("***More requests***")
+                cmcontinue = response['continue']['cmcontinue']
+                query = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=categorymembers&cmlimit=500" \
+                        "&cmtitle={}&cmcontinue={}".format(page_title, cmcontinue)
+                response = requests.get(query).json()
+                for categorymember in response['query']['categorymembers']:
+                    pageid = categorymember['pageid']
+                    ns = categorymember['ns']
+                    title = categorymember['title']
+                    # print(title, file=fout)
+                    cnt_categories += 1
+
+                    if title.startswith('Category:WikiProject '):
+                        self.projects.append(title)
+
+        except Exception as e:
+            print(e)
+
+        print("{} categories in total. {} wikiproject specific templates.".format(cnt_categories, len(self.projects)))
+
+
+    def search_project_templates(self):
+
+        cnt = 0
+        cnt_non_parents = 0
+        cnt_total = 0
+        fout = open("data/project_templates.json", 'w')
+        for template_project in self.projects:
+
+            print("No. {}: {}".format(cnt, template_project))
+            cnt += 1
+
+            name_project = template_project.replace("Category:", "").replace(" templates", "")
+
+            if name_project == 'WikiProject Journalism':
+                pass
+
+            templates = self.dfs_templates(name_project, self.const_non_category, template_project, [template_project], 0)
+
+            for template in templates:
+
+                title, parent_category, name_project, depth = template
+                record = {"template": title, "top_category": parent_category,
+                          "wikiproject": name_project, "depth": depth}
+                from json import dumps
+                print(dumps(record), file=fout)
+                cnt_total += 1
+                if depth == 0:
+                    cnt_non_parents += 1
+        print("Total Templates: {}; non-parent templates: {}".format(cnt_total, cnt_non_parents))
+
+
+    def dfs_templates(self, name_project, parent_category, template_project, template_path, depth):
+
+        templates = []
+        try:
+            query = self.template_query.format(template_project)
+            response = requests.get(query).json()
+
+            for categorymember in response['query']['categorymembers']:
+                pageid = categorymember['pageid']
+                ns = categorymember['ns']
+                title = categorymember['title']
+                # print(title, file=fout)
+
+                # prevent duplications for infinite loops
+                if title in template_path:
+                    continue
+
+                template_path.append(title)
+
+                # subcategories
+                if ns == 14:
+                    # only keep the highest level of parent category
+                    if depth == 0:
+                        parent_category = title
+
+                    sub_templates = self.dfs_templates(name_project, parent_category, title, template_path, depth+1)
+                    templates += sub_templates
+
+                # page
+                if ns == 10:
+                    # non sub category titles
+                    templates.append((title, parent_category, name_project, depth))
+
+        except Exception as e:
+            print(e)
+
+        return templates
+
+
+def main():
+    tx = TemplateExtractor()
+    tx.extract_all_template_wikiprojects()
+    tx.search_project_templates()
+
+main()
+
+#https://en.wikipedia.org/wiki/Special:ApiSandbox#action=query&format=json&list=categorymembers&cmtitle=Category%3AWikiProject+Military+history+templates&cmlimit=500

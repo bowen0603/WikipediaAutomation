@@ -7,48 +7,22 @@ from multiprocessing.dummy import Pool
 import os
 #from urllib3 import urlretrieve
 from urllib.request import urlretrieve
+from parse_diff import DiffParser
 
 import urllib3
 
 class ParallelProcessing:
 
     def __init__(self):
-        self.thread_nbr = 8
+        self.thread_nbr = 6
         self.thread_download_nbr = 2
 
         self.url_base = "https://dumps.wikimedia.org/enwiki/20170701"
         self.dir_temporal = "data/temporal"
+        self.dir_output = "data/parsed_dumps"
+        self.file_bots = "data/bots_list.csv"
 
         self.urls = self.read_url_file()
-
-    def parallel_processing_demo(self):
-        lst = []
-        cnt = 0
-        for i in range(26): # total number of tasks
-
-            if cnt < self.thread_nbr:
-                cnt += 1
-                length = randint(0, 10)
-                lst.append((i, length))
-            else:
-                pool = Pool(self.thread_nbr)
-                pool.map(self.foo, lst)
-                print("All finished")
-
-                cnt = 1
-                length = randint(0, 10)
-                lst = [(i, length)]
-        if lst:
-            pool = Pool(self.thread_nbr)
-            pool.map(self.foo, lst)
-            print("All finished")
-
-
-    def foo(self, para):
-        sleep(para[1])
-        print("{}, Sept {} seconds.".format(para[0], para[1]))
-        # return para[1]
-
 
     def read_url_file(self):
         urls = []
@@ -57,6 +31,7 @@ class ParallelProcessing:
         return urls
 
     def parallel_downloading(self):
+        print("Downloading the dumps in two processes...")
         cnt = 0
         list_urls = []
 
@@ -73,7 +48,7 @@ class ParallelProcessing:
 
         if list_urls:
             pool = Pool(self.thread_nbr)
-            pool.map(self.process_dump, list_urls)
+            pool.map(self.download_dump, list_urls)
 
     def download_dump(self, params):
 
@@ -86,32 +61,36 @@ class ParallelProcessing:
 
         urlretrieve(url_full, filename=filename)
 
+    def read_filenames(self):
+        from os import listdir
+        from os.path import isfile, join
+        path = self.dir_temporal + "/"
+        return [f for f in listdir(path) if isfile(join(path, f))]
 
     def parallel_processing(self):
         cnt = 0
-        list_urls = []
+        list_dumpfile = []
 
-        pool_downlowd = Pool(2)
-        pool_worker = Pool(self.thread_nbr)
-
+        filenames = self.read_filenames()
         pool = Pool(self.thread_nbr)
-        for i in range(len(self.urls)):
+
+        for i in range(len(filenames)):
 
             if cnt < self.thread_nbr:
                 cnt += 1
-                list_urls.append((i, self.urls[i]))
+                list_dumpfile.append((i, filenames[i]))
             else:
                 # pool = Pool(self.thread_nbr)
                 # pool.map_async(self.bash, list_urls)
                 # pool.map(self.bash, list_urls)
 
-                pool.map(self.process_dump, list_urls)
+                pool.map(self.process_dump, list_dumpfile)
                 cnt = 1
-                list_urls = [(i, self.urls[i])]
+                list_dumpfile = [(i, filenames[i])]
 
-        if list_urls:
+        if list_dumpfile:
             pool = Pool(self.thread_nbr)
-            pool.map(self.process_dump, list_urls)
+            pool.map(self.process_dump, list_dumpfile)
             pool.close()
             pool.join()
 
@@ -119,37 +98,27 @@ class ParallelProcessing:
     def process_dump(self, params):
 
         idx = params[0]
-        url = params[1]
-
-        print("No. {} Processing - {}".format(idx, url))
-
-        # download the dump
-        url_full = "{}/{}".format(self.url_base, url)
-        filename = "{}/{}".format(self.dir_temporal, url)
-
-
-        print(url_full)
-        urlretrieve(url_full, filename=filename)
-        # command_wget = "wget -P {} -c '{}/{}'".format(self.dir_temporal, self.url_base, url)
-        # print(command_wget)
-        # os.system(command_wget)
+        dumpfile = params[1]
 
         # process dump
-        print("Parsing Dump No. {} ...".format(idx))
+        print("Parsing Dump No. {}: {} ...".format(idx, dumpfile))
+
+        input = "{}/{}/{}".format(os.getcwd(), self.dir_temporal, dumpfile)
+        output = "{}/{}/{}".format(os.getcwd(), self.dir_output, dumpfile).replace(".7z", ".json")
+        bot_file = "{}/{}".format(os.getcwd(), self.file_bots)
+
+        parser = DiffParser()
+        print("{},{},{}".format(input, output, self.file_bots))
+        parser.parse_file(input, output, bot_file)
 
         # delete processed dump
-        print("Deleting Dump No. {} ...".format(idx))
-        os.remove(filename)
-        # command_rm = "rm -f {}".format(filename)
-
-        # os.system(command_rm)
-        #rm -f "$TMPDIR${FILES[i]}"
-
+        # print("Deleting Dump No. {} ...".format(idx))
 
 def main():
     pp = ParallelProcessing()
     # pp.parallel_processing_demo()
-    pp.parallel_downloading()
+    # pp.parallel_downloading()
+    pp.parallel_processing()
 
 main()
 

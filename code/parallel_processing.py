@@ -14,12 +14,12 @@ import urllib3
 class ParallelProcessing:
 
     def __init__(self):
-        self.thread_nbr = 6
+        self.thread_nbr = 32
         self.thread_download_nbr = 2
 
         self.url_base = "https://dumps.wikimedia.org/enwiki/20170701"
-        self.dir_temporal = "data/temporal"
-        self.dir_output = "data/parsed_dumps"
+        self.dir_temporal = "/export/scratch2/bowen-yu/temp_data"
+        self.dir_output = "/export/scratch2/bowen-yu/parsed_dumps"
         self.file_bots = "data/bots_list.csv"
 
         self.urls = self.read_url_file()
@@ -103,12 +103,15 @@ class ParallelProcessing:
         # process dump
         print("Parsing Dump No. {}: {} ...".format(idx, dumpfile))
 
-        input = "{}/{}/{}".format(os.getcwd(), self.dir_temporal, dumpfile)
-        output = "{}/{}/{}".format(os.getcwd(), self.dir_output, dumpfile).replace(".7z", ".json")
+        #input = "{}/{}/{}".format(os.getcwd(), self.dir_temporal, dumpfile)
+        #output = "{}/{}/{}".format(os.getcwd(), self.dir_output, dumpfile).replace(".7z", ".json")
+
+        input = "{}/{}".format(self.dir_temporal, dumpfile)
+        output = "{}/{}".format(self.dir_output, dumpfile).replace(".7z", ".json")
         bot_file = "{}/{}".format(os.getcwd(), self.file_bots)
 
         parser = DiffParser()
-        print("{},{},{}".format(input, output, self.file_bots))
+        #print("{},{},{}".format(input, output, self.file_bots))
         parser.parse_file(input, output, bot_file)
 
         # delete processed dump
@@ -117,7 +120,7 @@ class ParallelProcessing:
 def main():
     pp = ParallelProcessing()
     # pp.parallel_processing_demo()
-    # pp.parallel_downloading()
+    #pp.parallel_downloading()
     pp.parallel_processing()
 
 main()

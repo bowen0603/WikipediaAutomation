@@ -134,10 +134,10 @@ class DiffParser:
     def parse_file(self, input=None, output=None, bot_file=None):
         bot_list = self.load_bots(bot_file)
 
-        fout = open(output, 'r')
-        print(input)
+        fout = open(output, 'w')
+        #print(input)
         f = functions.open_file(input)
-        print(f)
+        #print(f)
         dump = Iterator.from_file(f)
 
         for page in dump:

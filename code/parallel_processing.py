@@ -2,12 +2,11 @@ from __future__ import print_function
 
 from random import randint
 from time import sleep
-#from multiprocessing import Pool
 from multiprocessing.dummy import Pool
 import os
-#from urllib3 import urlretrieve
 from urllib.request import urlretrieve
 from parse_diff import DiffParser
+from parse_template import DiffTemp
 
 import urllib3
 
@@ -18,7 +17,7 @@ class ParallelProcessing:
         self.thread_download_nbr = 2
 
         self.url_base = "https://dumps.wikimedia.org/enwiki/20170701"
-        self.dir_temporal = "/export/scratch2/bowen-yu/temp_data"
+        self.dir_temporal = "/export/scratch2/bowen-yu/tempo_data"
         self.dir_output = "/export/scratch2/bowen-yu/parsed_dumps"
         self.file_bots = "data/bots_list.csv"
 
@@ -80,10 +79,6 @@ class ParallelProcessing:
                 cnt += 1
                 list_dumpfile.append((i, filenames[i]))
             else:
-                # pool = Pool(self.thread_nbr)
-                # pool.map_async(self.bash, list_urls)
-                # pool.map(self.bash, list_urls)
-
                 pool.map(self.process_dump, list_dumpfile)
                 cnt = 1
                 list_dumpfile = [(i, filenames[i])]
@@ -103,16 +98,13 @@ class ParallelProcessing:
         # process dump
         print("Parsing Dump No. {}: {} ...".format(idx, dumpfile))
 
-        #input = "{}/{}/{}".format(os.getcwd(), self.dir_temporal, dumpfile)
-        #output = "{}/{}/{}".format(os.getcwd(), self.dir_output, dumpfile).replace(".7z", ".json")
-
         input = "{}/{}".format(self.dir_temporal, dumpfile)
         output = "{}/{}".format(self.dir_output, dumpfile).replace(".7z", ".json")
         bot_file = "{}/{}".format(os.getcwd(), self.file_bots)
 
-        parser = DiffParser()
-        #print("{},{},{}".format(input, output, self.file_bots))
-        parser.parse_file(input, output, bot_file)
+        #parser = DiffParser()
+        parser = DiffTemp()
+        parser.parse_file(input, output)
 
         # delete processed dump
         # print("Deleting Dump No. {} ...".format(idx))

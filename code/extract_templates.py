@@ -1,5 +1,7 @@
 
 import requests
+import json
+import numpy as np
 # https://en.wikipedia.org/w/api.php?action=help&modules=query%2Bcategorymembers
 # https://en.wikipedia.org/wiki/Special:ApiSandbox#action=query&format=json&list=categorymembers&cmtitle=Category%3AWikiProject+Military+history+templates&cmlimit=500
 
@@ -26,10 +28,14 @@ import requests
 class TemplateExtractor:
 
     def __init__(self):
+
+        self.nbr_random_sample = 200
+
         self.projects = []
         self.const_non_category = "NONE_CATE"
         self.template_query = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=categorymembers&cmlimit=500" \
                     "&cmtitle={}"
+        self.valid_wikiprojects = []
 
     def extract_all_template_wikiprojects(self):
         #"https://en.wikipedia.org/w/api.php?action=query&format=json&list=users"
@@ -75,21 +81,36 @@ class TemplateExtractor:
         print("{} categories in total. {} wikiproject specific templates.".format(cnt_categories, len(self.projects)))
 
 
+    def read_valid_wikiprojects(self):
+        fin = open("data/valid_wikiprojects.csv", "r")
+        header = True
+        for line in fin:
+            if header:
+                header = False
+                continue
+            wikiproject = line.split(",")[0]
+            self.valid_wikiprojects.append(wikiproject)
+
     def search_project_templates(self):
 
         cnt = 0
         cnt_non_parents = 0
         cnt_total = 0
-        fout = open("data/project_templates.json", 'w')
+        fout = open("data/valid_project_templates.json", 'w')
+
+        self.read_valid_wikiprojects()
+
         for template_project in self.projects:
 
             print("No. {}: {}".format(cnt, template_project))
             cnt += 1
 
-            name_project = template_project.replace("Category:", "").replace(" templates", "")
+            name_project = template_project.replace("Category:", "").replace(" templates", "").replace("WikiProject ", "").lower()
+            if name_project not in self.valid_wikiprojects:
+                continue
 
-            if name_project == 'WikiProject Journalism':
-                pass
+            # if name_project == 'WikiProject Journalism':
+            #     pass
 
             templates = self.dfs_templates(name_project, self.const_non_category, template_project, [template_project], 0)
 
@@ -107,6 +128,9 @@ class TemplateExtractor:
 
 
     def dfs_templates(self, name_project, parent_category, template_project, template_path, depth):
+
+        if depth >= 8:
+            return []
 
         templates = []
         try:
@@ -139,16 +163,40 @@ class TemplateExtractor:
                     # non sub category titles
                     templates.append((title, parent_category, name_project, depth))
 
+                template_path.remove(title)
+
         except Exception as e:
             print(e)
 
         return templates
 
+    def random_select_templates(self, depth):
+        list_templates = []
+        fin = open("data/valid_project_templates.json", "r")
+        for line in fin:
+            obj = json.loads(line.strip())
+            if obj['depth'] > depth:
+                continue
+            list_templates.append(obj)
+
+        random_templates = np.random.choice(list_templates, self.nbr_random_sample, replace=False)
+        fout = open("data/random_project_templates_depth2.csv", "w")
+        print("template,wikiproject,top_category,depth", file=fout)
+        for template in random_templates:
+            print("{},{},{},{}".format(template["template"],
+                                       template["wikiproject"],
+                                       template["top_category"],
+                                       template["depth"]), file=fout)
+
+
+
+
 
 def main():
     tx = TemplateExtractor()
-    tx.extract_all_template_wikiprojects()
-    tx.search_project_templates()
+    # tx.extract_all_template_wikiprojects()
+    # tx.search_project_templates()
+    tx.random_select_templates(2)
 
 main()
 

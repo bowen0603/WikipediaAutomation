@@ -134,8 +134,11 @@ class DiffParser:
     def parse_file(self, input=None, output=None, bot_file=None):
         bot_list = self.load_bots(bot_file)
 
-        fout = open(output, 'w')
-        dump = Iterator.from_file(functions.open_file(input))
+        fout = open(output, 'r')
+        print(input)
+        f = functions.open_file(input)
+        print(f)
+        dump = Iterator.from_file(f)
 
         for page in dump:
             # ignore old version pages that were redirected

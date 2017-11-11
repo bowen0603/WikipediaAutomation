@@ -120,7 +120,7 @@ class ParallelProcessing:
 def main():
     pp = ParallelProcessing()
     # pp.parallel_processing_demo()
-    #pp.parallel_downloading()
+    # pp.parallel_downloading()
     pp.parallel_processing()
 
 main()

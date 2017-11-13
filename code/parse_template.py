@@ -48,6 +48,11 @@ class DiffTemp:
                     print(dumps(record), file=fout)
             else:
                 for rev in page:
+
+                    # skip non registered editors
+                    if rev.contributor.id is None:
+                        continue
+
                     from time import mktime, strptime
                     pattern = '%Y%m%d%H%M%S'
                     epoch = int(mktime(strptime(str(rev.timestamp), pattern)))

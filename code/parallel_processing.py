@@ -13,12 +13,15 @@ import urllib3
 class ParallelProcessing:
 
     def __init__(self):
-        self.thread_nbr = 32
+        self.thread_nbr = 3
         self.thread_download_nbr = 2
 
         self.url_base = "https://dumps.wikimedia.org/enwiki/20170701"
         self.dir_temporal = "/export/scratch2/bowen-yu/tempo_data"
         self.dir_output = "/export/scratch2/bowen-yu/parsed_dumps"
+        self.dir_temporal_vm = "~/tempo_data"
+        self.dir_output_vm = "~/parsed_dumps"
+
         self.file_bots = "data/bots_list.csv"
 
         self.urls = self.read_url_file()
@@ -70,7 +73,9 @@ class ParallelProcessing:
         cnt = 0
         list_dumpfile = []
 
-        filenames = self.read_filenames()
+        #filenames = self.read_filenames()
+        # same name as urls, only for vm
+        filenames = self.urls
         pool = Pool(self.thread_nbr)
 
         for i in range(len(filenames)):
@@ -79,13 +84,15 @@ class ParallelProcessing:
                 cnt += 1
                 list_dumpfile.append((i, filenames[i]))
             else:
-                pool.map(self.process_dump, list_dumpfile)
+                #pool.map(self.process_dump, list_dumpfile)
+                pool.map(self.process_dump_vm, list_dumpfile)
                 cnt = 1
                 list_dumpfile = [(i, filenames[i])]
 
         if list_dumpfile:
             pool = Pool(self.thread_nbr)
-            pool.map(self.process_dump, list_dumpfile)
+            #pool.map(self.process_dump, list_dumpfile)
+            pool.map(self.process_dump_vm, list_dumpfile)
             pool.close()
             pool.join()
 
@@ -108,6 +115,46 @@ class ParallelProcessing:
 
         # delete processed dump
         # print("Deleting Dump No. {} ...".format(idx))
+
+    def process_dump_vm(self, params):
+        idx = params[0]
+        dumpfile = params[1]
+
+        # process dump
+        print("Parsing Dump No. {}: {} ...".format(idx, dumpfile))
+        input = "{}/{}".format(self.dir_temporal_vm, dumpfile)
+        output = "{}/{}".format(self.dir_output_vm, dumpfile).replace(".7z", ".json")
+        bot_file = "{}/{}".format(os.getcwd(), self.file_bots)
+
+        print(input, output)
+
+        # first scp the file from barcelona
+        command = "sshpass -p \"ybw220///\" scp bowen-yu@flagon.cs.umn.edu:/export/scratch2/bowen-yu/dumpfile input"
+        command = "sshpass -p \"ybw220///\" scp bowen-yu@flagon.cs.umn.edu:/export/scratch2/bowen-yu/tempo_data/{} {}".format(dumpfile, input)
+        print(command)
+        os.system(command)
+
+        # sleep for 10+ seconds until the file is completed
+        import time
+        time.sleep(10)
+
+        # parse the file
+        #parser = DiffTemp()
+        #parser.parse_file(input, output)
+        # delete processed dump
+        # print("Deleting Dump No. {} ...".format(idx))
+
+        # scp the parsed file to barcelona
+        command = "sshpass -p \"ybw220///\" scp output bowen-yu@flagon.cs.umn.edu:/export/scratch2/bowen-yu/vm_parsed"
+        print(command)
+        os.system(command)
+
+        # delete files
+        #os.system("rm -f input")
+        #os.system("rm -f output")
+        time.sleep(10)
+
+
 
 def main():
     pp = ParallelProcessing()

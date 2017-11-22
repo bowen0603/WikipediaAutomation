@@ -24,9 +24,11 @@ class Executor:
 
         # self.create_edits_on_project_article_pages()
 
+        self.create_edits_on_project_member_pages()
+
         # self.create_longitudinal_data()
 
-        self.generate_longitudinal_IVDVs()
+        # self.generate_longitudinal_IVDVs()
 
         # self.template_related_generation()
 
@@ -322,8 +324,8 @@ class Executor:
         query = """
             SELECT t1.wikiproject AS wikiproject,
                 t1.time_index AS time_index,
-                IFNULL(t1.bot_template, 0) AS bot_template45,
-                IFNULL(t2.editor_template, 0) AS editor_template45
+                IFNULL(t1.bot_template, 0) AS bot_template01,
+                IFNULL(t2.editor_template, 0) AS editor_template01
             FROM `{}.{}` AS t1
             FULL OUTER JOIN `{}.{}` AS t2
             ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
@@ -458,6 +460,93 @@ class Executor:
 
         pass
 
+    # total number of edits on project member pages per time period
+    def create_edits_on_project_member_pages(self):
+        # user's active period on the project
+        query = """
+            SELECT user_text,
+                wikiproject,
+                MIN(timestamp) AS starting_ts,
+                MAX(timestamp) AS ending_ts
+                FROM `{}.{}`
+                GROUP BY user_text, wikiproject
+        """.format(self.default_db, "rev_ns45_user_wikiproject")
+        self.query.run_query(query, self.default_db, "user_active_timepoints45")
+
+
+        # locate project members in time period
+        query = """
+            SELECT t1.user_text AS user_text,
+                t1.wikiproject AS wikiproject,
+                t2.index AS time_index,
+                t2.starting_time AS starting_time,
+                t2.ending_time AS ending_time
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.starting_ts <= t2.ending_time AND t1.ending_ts > t2.starting_time
+        """.format(self.default_db, "user_active_timepoints45",
+                   self.default_db, "time_index")
+        self.query.run_query(query, self.default_db, "user_active_period45")
+
+        # identify edits on project members
+        query = """
+            SELECT rev_user_text AS user_text,
+                rev_user_id AS user_id,
+                rev_timestamp AS timestamp,
+                add_template,
+                REPLACE(rev_page_title, "User talk:", "") AS page
+            FROM `{}.{}`
+            WHERE ns = 3
+        """.format(self.default_db, self.raw_revs)
+        self.query.run_query(query, self.default_db, "revs3")
+
+        query = """
+            SELECT rev_user_text AS user_text,
+                rev_user_id AS user_id,
+                rev_timestamp AS timestamp,
+                add_template,
+                REPLACE(rev_page_title, "User:", "") AS page
+            FROM `{}.{}`
+            WHERE ns = 2
+        """.format(self.default_db, self.raw_revs)
+        self.query.run_query(query, self.default_db, "revs2")
+
+        query = """
+            SELECT *
+            FROM `{}`.revs2
+            UNION ALL
+            SELECT *
+            FROM `{}`.revs3
+        """.format(self.default_db, self.default_db)
+        self.query.run_query(query, self.default_db, "revs23")
+
+        # identify edits on project member pages
+        query = """
+            SELECT t1.page AS member,
+                t1.add_template AS add_template,
+                t1.timestamp AS timestamp,
+                t2.time_index AS time_index,
+                t2.wikiproject AS wikiproject,
+                t2.starting_time AS starting_time,
+                t2.ending_time AS ending_time
+            FROM `{}.{}` AS t1
+            INNER JOIN `{}.{}` AS t2
+            ON t1.page = t2.user_text
+            WHERE t1.timestamp >= t2.starting_time AND t1.timestamp < t2.ending_time
+        """.format(self.default_db, "revs23",
+                   self.default_db, "user_active_period45")
+        self.query.run_query(query, self.default_db, "raw_edits_on_members23")
+
+        # DV - edits on project members
+        query = """
+            SELECT wikiproject,
+                time_index,
+                SUM(add_template) AS total_template,
+                COUNT(*) AS total_edits
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index
+        """.format(self.default_db, "raw_edits_on_members23")
+        self.query.run_query(query, self.default_db, "dv_member_page_edits23")
 
     def create_edits_on_project_article_pages(self):
 

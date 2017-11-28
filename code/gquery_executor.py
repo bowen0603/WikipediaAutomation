@@ -9,8 +9,8 @@ class Executor:
     def __init__(self):
         self.query = QueryHandler()
         self.default_db = "bowen_wikipedia_raw" #"bowen_automation"
-        self.raw_revs = "revs_2017_temp" #"revs_2017"
-        self.time_table = "time_index"
+        self.raw_revs = "revs_2017"
+        self.time_table = "time_index_3month"
 
         # variables to change
         self.article_projects_table = "article_projects"
@@ -20,26 +20,21 @@ class Executor:
 
         # self.select_valid_projects()
 
-        # todo: self.select_bots()
-
         # generate longitudinal data (IV) for three namespaces
-        # self.create_edits_on_project_pages()
-        # self.create_edits_on_project_article_pages()
-        # self.create_edits_on_project_member_pages()
+        self.create_edits_on_project_article_pages()
+        self.create_edits_on_project_pages()
+        self.create_edits_on_project_member_pages()
+
 
         # compute independent variables
-        # self.create_longitudinal_data()
-        # self.create_variable_types_by_longitudinal_data()
+        self.create_longitudinal_data()
+        self.create_variable_types_by_longitudinal_data()
 
         # merge all the variables
-        # self.merging_tables()
+        self.merging_tables()
 
         # finalize the table
         self.compute_variables()
-
-        # self.generate_longitudinal_IVDVs()
-
-        # self.template_related_generation()
 
 
     def generate_longitudinal_IVDVs(self):
@@ -1388,7 +1383,6 @@ class Executor:
         """.format(self.default_db, "rev_ns45_user_wikiproject")
         self.query.run_query(query, self.default_db, "user_active_timepoints45")
 
-
         # locate project members in time period
         query = """
             SELECT t1.user_text AS user_text,
@@ -1439,17 +1433,6 @@ class Executor:
         """.format(self.default_db, self.default_db)
         self.query.run_query(query, self.default_db, "revs23")
 
-
-        # DV - edits on project members
-        query = """
-            SELECT wikiproject,
-                time_index,
-                SUM(add_template) AS total_template,
-                COUNT(*) AS total_edits
-                FROM `{}.{}`
-                GROUP BY wikiproject, time_index
-        """.format(self.default_db, "raw_edits_on_members23")
-        self.query.run_query(query, self.default_db, "dv_member_page_edits23")
 
     def create_edits_on_project_article_pages(self):
 

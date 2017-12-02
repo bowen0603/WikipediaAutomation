@@ -48,6 +48,7 @@ xtreg pct_dv_project time_index ls_cv_total_template ls_cv_project_scope
 
 
 ***** Model 2 % of template and bot edits *****
+cor pct_by_bots pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_total pct_by_bots pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
 
 xtreg pct_dv_article pct_by_bots pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
@@ -65,15 +66,30 @@ xtreg pct_dv_project pct_template_bots pct_template_editors pct_non_template_bot
 
 
 ***** Model 4 template and coverage *****
+corr pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
+
 xtreg pct_dv_total pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
 
 xtreg pct_dv_article pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_member pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
 
-***** Model 5 (Baseline) *****
+***** Model 5 template v.s. bots v.s. place *****
+
+corr pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
+
 xtreg pct_dv_total pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
 
 xtreg pct_dv_article pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
 xtreg pct_dv_member pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
 xtreg pct_dv_project pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
+
+
+
+clear all
+set more off
+
+import delimited "/Users/bobo/Documents/WikipediaAutomation/data/stats.csv", encoding(ISO-8859-1)
+line pct_by_bots pct_contain_template time
+line pct_template_bots pct_template_editors pct_non_template_bots pct_non_template_editors time_index
+

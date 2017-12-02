@@ -1166,6 +1166,91 @@ class Executor:
         self.query.run_query(query, self.default_db, "automation_final_table")
 
 
+    def stats(self):
+        query = """
+            SELECT time_index,
+                SUM(total_edits) AS total_edits,
+                SUM(dv_article) AS total_article,
+                SUM(dv_member) AS total_member,
+                SUM(dv_project) AS total_project,
+                SUM(contain_template) AS total_contain_template,
+                SUM(by_bots) AS total_by_bots,
+                SUM(template_bots) AS total_template_bots,
+                SUM(template_editors) AS total_template_editors,
+                SUM(non_template_editors) AS total_non_template_editors,
+                SUM(non_template_bots) AS total_non_template_bots,
+                SUM(template_article) AS total_template_article,
+                SUM(template_member) AS total_template_member,
+                SUM(template_project) AS total_template_project,
+                SUM(template_article_bot) AS total_template_article_bot,
+                SUM(template_member_bot) AS total_template_member_bot,
+                SUM(template_project_bot) AS total_template_project_bot,
+                SUM(template_article_editor) AS total_template_article_editor,
+                SUM(template_member_editor) AS total_template_member_editor,
+                SUM(template_project_editor) AS total_template_project_editor,
+                SUM(cv_total_template) AS total_template
+                FROM `{}.{}`
+                GROUP BY time_index
+                ORDER BY time_index ASC
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "stats1")
+
+        query = """
+            SELECT time_index,
+                total_article / (total_edits+1) AS pct_article,
+                total_member / (total_edits+1) AS pct_member,
+                total_project / (total_edits+1) AS pct_project,
+                total_contain_template / (total_edits+1) AS pct_contain_template,
+                total_by_bots / (total_edits+1) AS pct_by_bots,
+                total_template_bots / (total_edits+1) AS pct_template_bots,
+                total_template_editors / (total_edits+1) AS pct_template_editors,
+                total_non_template_editors / (total_edits+1) AS pct_non_template_editors,
+                total_non_template_bots / (total_edits+1) AS pct_non_template_bots,
+                total_template_article / (total_edits+1) AS pct_template_article,
+                total_template_member / (total_edits+1) AS pct_template_member,
+                total_template_project / (total_edits+1) AS pct_template_project,
+                total_template_article_bot / (total_edits+1) AS pct_template_article_bot,
+                total_template_member_bot / (total_edits+1) AS pct_template_member_bot,
+                total_template_project_bot / (total_edits+1) AS pct_template_project_bot,
+                total_template_article_editor / (total_edits+1) AS pct_template_article_editor,
+                total_template_member_editor / (total_edits+1) AS pct_template_member_editor,
+                total_template_project_editor / (total_edits+1) AS pct_template_project_editor,
+                total_template
+                FROM `{}.{}`
+                ORDER BY time_index ASC
+        """.format(self.default_db, "stats1")
+        self.query.run_query(query, self.default_db, "stats2")
+
+        query = """
+            SELECT wikiproject,
+                COUNT(*) AS active_periods,
+                SUM(total_edits) AS total_edits,
+                SUM(dv_article) AS total_article,
+                SUM(dv_member) AS total_member,
+                SUM(dv_project) AS total_project,
+                SUM(contain_template) AS total_contain_template,
+                SUM(by_bots) AS total_by_bots,
+                SUM(template_bots) AS total_template_bots,
+                SUM(template_editors) AS total_template_editors,
+                SUM(non_template_editors) AS total_non_template_editors,
+                SUM(non_template_bots) AS total_non_template_bots,
+                SUM(template_article) AS total_template_article,
+                SUM(template_member) AS total_template_member,
+                SUM(template_project) AS total_template_project,
+                SUM(template_article_bot) AS total_template_article_bot,
+                SUM(template_member_bot) AS total_template_member_bot,
+                SUM(template_project_bot) AS total_template_project_bot,
+                SUM(template_article_editor) AS total_template_article_editor,
+                SUM(template_member_editor) AS total_template_member_editor,
+                SUM(template_project_editor) AS total_template_project_editor,
+                SUM(cv_total_template) AS total_template
+                FROM `{}.{}`
+                GROUP BY wikiproject
+                ORDER BY total_edits DESC
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "stats3")
+
+
     def template_related_generation(self):
         # CV: total number of templates used per project per time period
         query = """
@@ -1642,6 +1727,7 @@ class Executor:
 def main():
 
     exe = Executor()
-    exe.main()
+    # exe.main()
+    exe.stats()
 
 main()

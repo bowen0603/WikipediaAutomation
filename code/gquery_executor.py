@@ -1145,8 +1145,8 @@ class Executor:
                 (1.0 * by_bots / (total_edits+1)) AS pct_by_bots,
                 (1.0 * template_bots / (total_edits+1)) AS pct_template_bots,
                 (1.0 * template_editors / (total_edits+1)) AS pct_template_editors,
-                (1.0 * template_bots / (total_edits+1)) AS pct_non_template_editors,
-                (1.0 * non_template_editors / (total_edits+1)) AS pct_non_template_bots,
+                (1.0 * non_template_bots / (total_edits+1)) AS pct_non_template_bots,
+                (1.0 * non_template_editors / (total_edits+1)) AS pct_non_template_editors,
                 (1.0 * template_article / (total_edits+1)) AS pct_template_article,
                 (1.0 * template_member / (total_edits+1)) AS pct_template_member,
                 (1.0 * template_project / (total_edits+1)) AS pct_template_project,
@@ -1727,7 +1727,7 @@ class Executor:
 def main():
 
     exe = Executor()
-    # exe.main()
-    exe.stats()
+    exe.main()
+    # exe.stats()
 
 main()

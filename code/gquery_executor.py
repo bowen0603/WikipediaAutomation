@@ -20,23 +20,65 @@ class Executor:
 
         # self.select_valid_projects()
 
-        # generate longitudinal data (IV) for three namespaces
-        self.create_edits_on_project_article_pages()
-        self.create_edits_on_project_pages()
-        self.create_edits_on_project_member_pages()
+        # # generate longitudinal data (IV) for three namespaces
+        # self.create_edits_on_project_article_pages()
+        # self.create_edits_on_project_pages()
+        # self.create_edits_on_project_member_pages()
+        #
+        # # compute independent variables
+        # self.create_longitudinal_data()
+        # self.create_variable_types_by_longitudinal_data()
+        #
+        # # compute quality as DVs
+        # self.project_quality_change()
 
-        # compute independent variables
-        self.create_longitudinal_data()
-        self.create_variable_types_by_longitudinal_data()
-
-        # compute quality as DVs
-        self.project_quality_change()
+        # self.compute_CVs()
 
         # merge all the variables
         self.merging_tables()
 
         # finalize the table
         self.compute_variables()
+
+    def compute_CVs(self):
+        # project tenure
+        query = """
+            SELECT wikiproject_page AS wikiproject,
+                MIN(first_edit) AS creation_ts
+                FROM `{}.{}`
+                GROUP BY wikiproject
+        """.format(self.default_db, "project_pages_45")
+        self.query.run_query(query, self.default_db, "cv_project_tenure1")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t2.index AS index,
+                (t2.starting_time - t1.creation_ts) AS wp_tenure
+                FROM `{}.{}` t1
+                CROSS JOIN `{}.{}` t2
+                WHERE t2.starting_time > t1.creation_ts
+        """.format(self.default_db, "cv_project_tenure1",
+                   self.default_db, self.time_table)
+        self.query.run_query(query, self.default_db, "cv_project_tenure2")
+
+        # todo: check here, tenure in months, not the time unit
+        query = """
+            SELECT wikiproject,
+                index,
+                wp_tenure / (3600*24*30) AS wp_tenure
+                FROM `{}.{}`
+        """.format(self.default_db, "cv_project_tenure2")
+        self.query.run_query(query, self.default_db, "cv_project_tenure")
+
+        # active users
+        query = """
+            SELECT wikiproject,
+                time_index,
+                COUNT(*) AS active_members
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index
+        """.format(self.default_db, "user_active_period45")
+        self.query.run_query(query, self.default_db, "cv_active_members")
 
     def project_quality_change(self):
         # article quality at the beginning of each time period
@@ -1243,13 +1285,84 @@ class Executor:
                 ON t1.wikiproject = t2.wikiproject
         """.format(self.default_db, "merging22",
                    self.default_db, "project_scope")
+        self.query.run_query(query, self.default_db, "merging23")
+
+        # merging extra CVs
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.dv_article AS dv_article,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t2.active_members AS active_members
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging23",
+                   self.default_db, "cv_active_members")
+        self.query.run_query(query, self.default_db, "merging24")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.dv_article AS dv_article,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.active_members AS cv_active_members,
+                t2.wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.index
+        """.format(self.default_db, "merging24",
+                   self.default_db, "cv_project_tenure")
         self.query.run_query(query, self.default_db, "merging_final")
 
 
     def compute_variables(self):
 
         # only valid wikiprojects
-
         query = """
             SELECT t1.wikiproject AS wikiproject,
                 t2.nwikiproject AS nwikiproject,
@@ -1275,6 +1388,8 @@ class Executor:
                 t1.template_project_editor AS template_project_editor,
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure,
                 t1.article_bot AS article_bot,
                 t1.member_bot AS member_bot,
                 t1.project_bot AS project_bot
@@ -1288,7 +1403,8 @@ class Executor:
         # compute IVs
         query = """
             SELECT *,
-                time_index+1 AS next_time
+                time_index+1 AS next_time,
+                time_index-1 AS pre_time
                 FROM `{}.{}`
         """.format(self.default_db, "compute1")
         self.query.run_query(query, self.default_db, "compute2")
@@ -1297,6 +1413,7 @@ class Executor:
             SELECT t1.wikiproject AS wikiproject,
                 t1.nwikiproject AS nwikiproject,
                 t1.time_index AS time_index,
+                t1.pre_time AS pre_time,
                 t1.total_edits AS total_edits,
                 t1.dv_article AS dv_article,
                 t1.dv_member AS dv_member,
@@ -1322,6 +1439,8 @@ class Executor:
                 t2.dv_project AS next_dv_project,
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure,
                 t1.article_bot AS article_bot,
                 t1.member_bot AS member_bot,
                 t1.project_bot AS project_bot
@@ -1331,6 +1450,48 @@ class Executor:
         """.format(self.default_db, "compute2",
                    self.default_db, "compute2")
         self.query.run_query(query, self.default_db, "compute3")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.nwikiproject AS nwikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.dv_article AS dv_article,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.next_total AS next_total,
+                t1.next_dv_article AS next_dv_article,
+                t1.next_dv_member AS next_dv_member,
+                t1.next_dv_project AS next_dv_project,
+                t1.cv_total_template AS cv_total_template,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure,
+                t2.total_edits AS cv_pre_edits,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.pre_time = t2.time_index
+        """.format(self.default_db, "compute3",
+                   self.default_db, "compute3")
+        self.query.run_query(query, self.default_db, "compute4")
 
         query = """
             SELECT wikiproject,
@@ -1361,6 +1522,9 @@ class Executor:
                 template_project_editor,
                 cv_total_template,
                 cv_project_scope,
+                cv_pre_edits,
+                cv_active_members,
+                cv_wp_tenure,
                 (1.0 * contain_template / (total_edits+1)) AS pct_contain_template,
                 (1.0 * by_bots / (total_edits+1)) AS pct_by_bots,
                 (1.0 * template_bots / (total_edits+1)) AS pct_template_bots,
@@ -1385,8 +1549,8 @@ class Executor:
                 (1.0 * project_bot / (total_edits+1)) AS pct_project_bot
                 FROM `{}.{}`
                 ORDER BY wikiproject, time_index ASC
-        """.format(self.default_db, "compute3")
-        self.query.run_query(query, self.default_db, "compute4")
+        """.format(self.default_db, "compute4")
+        self.query.run_query(query, self.default_db, "compute5")
 
         query = """
             SELECT t1.wikiproject AS wikiproject,
@@ -1405,7 +1569,7 @@ class Executor:
                 t1.template_bots AS template_bots,
                 t1.template_editors AS template_editors,
                 t1.non_template_editors AS non_template_editors,
-                t1. non_template_bots AS non_template_bots,
+                t1.non_template_bots AS non_template_bots,
                 t1.template_article AS template_article,
                 t1.template_member AS template_member,
                 t1.template_project AS template_project,
@@ -1417,6 +1581,9 @@ class Executor:
                 t1.template_project_editor AS template_project_editor,
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
+                t1.cv_pre_edits AS cv_pre_edits,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure,
                 t1.pct_contain_template AS pct_contain_template,
                 t1.pct_by_bots AS pct_by_bots,
                 t1.pct_template_bots AS pct_template_bots,
@@ -1444,7 +1611,7 @@ class Executor:
                 INNER JOIN `{}.{}` AS t2
                 ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.index
                 ORDER BY wikiproject, time_index ASC
-        """.format(self.default_db, "compute4",
+        """.format(self.default_db, "compute5",
                    self.default_db, "article_quality_final")
         self.query.run_query(query, self.default_db, "automation_final_table")
 

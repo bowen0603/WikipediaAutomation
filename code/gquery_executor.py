@@ -37,8 +37,73 @@ class Executor:
         # # merge all the variables
         # self.merging_tables()
 
-        # finalize the table
-        self.compute_variables()
+        # # finalize the table
+        # self.compute_variables()
+
+        self.generate_data_for_qualitative()
+
+
+    def generate_data_for_qualitative(self):
+
+        # analysis one: identify the bots that always appear in the time periods project article quality decreased
+        # todo: can change the threshold!
+        query = """
+            SELECT wikiproject,
+                time_index,
+                delta_quality
+                FROM `{}.{}`
+                ORDER BY delta_quality ASC
+                LIMIT 1000
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis1")
+
+        # check which are the projects that have many project quality decrease
+        query = """
+            SELECT wikiproject,
+                COUNT(*) AS cnt
+                FROM `{}.{}`
+                GROUP BY wikiproject
+                ORDER BY cnt DESC
+        """.format(self.default_db, "qualitative_analysis1")
+        self.query.run_query(query, self.default_db, "qualitative_analysis2")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.delta_quality AS delta_quality,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 1 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis3")
+
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(delta_quality) AS delta_quality
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis4")
+
+        query = """
+            SELECT user_text,
+                AVG(delta_quality) AS delta_quality,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis4")
+        self.query.run_query(query, self.default_db, "qualitative_analysis5")
+
 
     def compute_CVs(self):
         # project tenure

@@ -30,14 +30,23 @@ egen ls_cv_total_template = std(l_cv_total_template)
 gen l_cv_project_scope = ln(cv_project_scope+1) / ln(2)
 egen ls_cv_project_scope = std(l_cv_project_scope)
 
+gen l_cv_pre_edits = ln(cv_pre_edits+1) / ln(2)
+egen ls_cv_pre_edits = std(l_cv_pre_edits)
+
+gen l_cv_active_members = ln(cv_active_members+1) / ln(2)
+egen ls_cv_active_members = std(l_cv_active_members)
 
 ***** DVs *****
 
 
 ****** Correlation Test ******
-corr pct_by_bots pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
+corr pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+regress pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+vif
+
 corr pct_template_bots pct_template_editors pct_non_template_bots pct_non_template_editors time_index ls_cv_total_template ls_cv_project_scope
 
+cv_wp_tenure cv_pre_edits cv_active_members 
 
 ***** Model 1 (Baseline) *****
 xtreg delta_quality time_index ls_cv_total_template ls_cv_project_scope
@@ -46,10 +55,15 @@ xtreg pct_dv_article time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_member time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project time_index ls_cv_total_template ls_cv_project_scope
 
+xtreg delta_quality time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+
 
 ***** Model 2 Effects of bot editing *****
-cor pct_by_bots pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
-xtreg delta_quality pct_by_bots time_index ls_cv_total_template ls_cv_project_scope
+cor pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg delta_quality pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
 
 xtreg pct_dv_article pct_by_bots time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_member pct_by_bots time_index ls_cv_total_template ls_cv_project_scope
@@ -63,6 +77,11 @@ xtreg pct_dv_article pct_contain_template time_index ls_cv_total_template ls_cv_
 xtreg pct_dv_member pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project pct_contain_template time_index ls_cv_total_template ls_cv_project_scope
 
+*** combining model 2 and 3 together
+xtreg delta_quality pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
 
 ***** Model 4 Effects of template used by bots *****
 xtreg delta_quality pct_by_bots pct_contain_template pct_template_bots time_index ls_cv_total_template ls_cv_project_scope
@@ -71,6 +90,11 @@ xtreg pct_dv_article pct_by_bots pct_contain_template pct_template_bots time_ind
 xtreg pct_dv_member pct_by_bots pct_contain_template pct_template_bots time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project pct_by_bots pct_contain_template pct_template_bots time_index ls_cv_total_template ls_cv_project_scope
 
+* updated
+xtreg delta_quality pct_template_bots pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article pct_template_bots pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member pct_template_bots pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project pct_template_bots pct_by_bots pct_contain_template time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
 
 ***** Model 5 bots v.s. place *****
 corr pct_article_bot pct_member_bot pct_project_bot time_index ls_cv_total_template ls_cv_project_scope
@@ -80,6 +104,15 @@ xtreg delta_quality pct_article_bot pct_member_bot pct_project_bot time_index ls
 xtreg pct_dv_article pct_article_bot pct_member_bot pct_project_bot time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_member pct_article_bot pct_member_bot pct_project_bot time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project pct_article_bot pct_member_bot pct_project_bot time_index ls_cv_total_template ls_cv_project_scope
+
+* updated
+regress pct_article_bot pct_member_bot pct_project_bot time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+vif
+
+xtreg delta_quality pct_article_bot pct_member_bot pct_project_bot time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article pct_article_bot pct_member_bot pct_project_bot time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member pct_article_bot pct_member_bot pct_project_bot time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project pct_article_bot pct_member_bot pct_project_bot time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
 
 
 ***** Model 6 template v.s. place *****
@@ -92,7 +125,14 @@ xtreg pct_dv_member pct_template_article pct_template_member pct_template_projec
 xtreg pct_dv_project pct_template_article pct_template_member pct_template_project time_index ls_cv_total_template ls_cv_project_scope
 
 
-***** Model 5 template v.s. bots v.s. place *****
+* updated
+xtreg delta_quality pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+
+
+***** Model 6 template v.s. bots v.s. place *****
 
 corr pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_template_article_editor pct_template_member_editor pct_template_project_editor
 
@@ -101,6 +141,12 @@ xtreg delta_quality pct_template_article_bot pct_template_member_bot pct_templat
 xtreg pct_dv_article pct_template_article_bot pct_template_member_bot pct_template_project_bot time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_member pct_template_article_bot pct_template_member_bot pct_template_project_bot time_index ls_cv_total_template ls_cv_project_scope
 xtreg pct_dv_project pct_template_article_bot pct_template_member_bot pct_template_project_bot time_index ls_cv_total_template ls_cv_project_scope
+
+* updated
+xtreg delta_quality pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_article_bot pct_member_bot pct_project_bot pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_article pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_article_bot pct_member_bot pct_project_bot pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_member pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_article_bot pct_member_bot pct_project_bot pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
+xtreg pct_dv_project pct_template_article_bot pct_template_member_bot pct_template_project_bot pct_article_bot pct_member_bot pct_project_bot pct_template_article pct_template_member pct_template_project time_index cv_wp_tenure ls_cv_project_scope ls_cv_active_members ls_cv_pre_edits 
 
 
 

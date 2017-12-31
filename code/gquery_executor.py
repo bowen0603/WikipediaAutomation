@@ -34,8 +34,8 @@ class Executor:
 
         # self.compute_CVs()
 
-        # merge all the variables
-        self.merging_tables()
+        # # merge all the variables
+        # self.merging_tables()
 
         # finalize the table
         self.compute_variables()
@@ -1315,7 +1315,7 @@ class Executor:
                 t1.member_bot AS member_bot,
                 t1.project_bot AS project_bot,
                 t1.cv_project_scope AS cv_project_scope,
-                t2.active_members AS active_members
+                IFNULL(t2.active_members, 0) AS active_members
                 FROM `{}.{}` AS t1
                 INNER JOIN `{}.{}` AS t2
                 ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
@@ -1351,7 +1351,7 @@ class Executor:
                 t1.project_bot AS project_bot,
                 t1.cv_project_scope AS cv_project_scope,
                 t1.active_members AS cv_active_members,
-                t2.wp_tenure AS cv_wp_tenure
+                IFNULL(t2.wp_tenure, 0) AS cv_wp_tenure
                 FROM `{}.{}` AS t1
                 INNER JOIN `{}.{}` AS t2
                 ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.index
@@ -1531,12 +1531,12 @@ class Executor:
                 (1.0 * template_editors / (total_edits+1)) AS pct_template_editors,
                 (1.0 * non_template_bots / (total_edits+1)) AS pct_non_template_bots,
                 (1.0 * non_template_editors / (total_edits+1)) AS pct_non_template_editors,
-                (1.0 * template_article / (total_edits+1)) AS pct_template_article,
-                (1.0 * template_member / (total_edits+1)) AS pct_template_member,
-                (1.0 * template_project / (total_edits+1)) AS pct_template_project,
-                (1.0 * template_article_bot / (total_edits+1)) AS pct_template_article_bot,
-                (1.0 * template_member_bot / (total_edits+1)) AS pct_template_member_bot,
-                (1.0 * template_project_bot / (total_edits+1)) AS pct_template_project_bot,
+                (1.0 * template_article / (dv_article+1)) AS pct_template_article,
+                (1.0 * template_member / (dv_member+1)) AS pct_template_member,
+                (1.0 * template_project / (dv_project+1)) AS pct_template_project,
+                (1.0 * template_article_bot / (dv_article+1)) AS pct_template_article_bot,
+                (1.0 * template_member_bot / (dv_member+1)) AS pct_template_member_bot,
+                (1.0 * template_project_bot / (dv_project+1)) AS pct_template_project_bot,
                 (1.0 * template_article_editor / (total_edits+1)) AS pct_template_article_editor,
                 (1.0 * template_member_editor / (total_edits+1)) AS pct_template_member_editor,
                 (1.0 * template_project_editor / (total_edits+1)) AS pct_template_project_editor,
@@ -1544,9 +1544,9 @@ class Executor:
                 (1.0 * (next_dv_article-dv_article) / (dv_article+1)) AS pct_dv_article,
                 (1.0 * (next_dv_member-dv_member) / (dv_member+1)) AS pct_dv_member,
                 (1.0 * (next_dv_project-dv_project) / (dv_project+1)) AS pct_dv_project,
-                (1.0 * article_bot / (total_edits+1)) AS pct_article_bot,
-                (1.0 * member_bot / (total_edits+1)) AS pct_member_bot,
-                (1.0 * project_bot / (total_edits+1)) AS pct_project_bot
+                (1.0 * article_bot / (dv_article+1)) AS pct_article_bot,
+                (1.0 * member_bot / (dv_member+1)) AS pct_member_bot,
+                (1.0 * project_bot / (dv_project+1)) AS pct_project_bot
                 FROM `{}.{}`
                 ORDER BY wikiproject, time_index ASC
         """.format(self.default_db, "compute4")

@@ -46,14 +46,14 @@ class Executor:
     def generate_data_for_qualitative(self):
 
         # analysis one: identify the bots that always appear in the time periods project article quality decreased
-        # todo: can change the threshold!
+        # top 20% periods that have the most decrease in article quality
         query = """
             SELECT wikiproject,
                 time_index,
                 delta_quality
                 FROM `{}.{}`
                 ORDER BY delta_quality ASC
-                LIMIT 1000
+                LIMIT 7200
         """.format(self.default_db, "automation_final_table")
         self.query.run_query(query, self.default_db, "qualitative_analysis1")
 
@@ -82,6 +82,7 @@ class Executor:
                    self.default_db, "lng_rev_type_ns012345")
         self.query.run_query(query, self.default_db, "qualitative_analysis3")
 
+        # TODO: set threshold for the count
         query = """
             SELECT wikiproject,
                 time_index,
@@ -90,6 +91,7 @@ class Executor:
                 AVG(delta_quality) AS delta_quality
                 FROM `{}.{}`
                 GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
                 ORDER BY wikiproject, time_index
         """.format(self.default_db, "qualitative_analysis3")
         self.query.run_query(query, self.default_db, "qualitative_analysis4")
@@ -102,7 +104,178 @@ class Executor:
                 GROUP BY user_text
                 ORDER BY appearance DESC
         """.format(self.default_db, "qualitative_analysis4")
+        self.query.run_query(query, self.default_db, "bots_caused_quality_decrease")
+
+        # top 20% periods that have the most decrease in article quality
+        query = """
+            SELECT wikiproject,
+                time_index,
+                delta_quality
+                FROM `{}.{}`
+                ORDER BY delta_quality DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
         self.query.run_query(query, self.default_db, "qualitative_analysis5")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.delta_quality AS delta_quality,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 1 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(delta_quality) AS delta_quality
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis7")
+
+        query = """
+            SELECT user_text,
+                AVG(delta_quality) AS delta_quality,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis7")
+        self.query.run_query(query, self.default_db, "bots_caused_quality_increase")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS delta_quality,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_quality_decrease",
+                   self.default_db, "bots_caused_quality_increase")
+        self.query.run_query(query, self.default_db, "bots_decrease_quality")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS delta_quality,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_quality_increase",
+                   self.default_db, "bots_caused_quality_decrease")
+        self.query.run_query(query, self.default_db, "bots_increase_quality")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS de_delta_quality,
+                t1.appearance AS de_appearance,
+                t2.delta_quality AS in_delta_quality,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_quality_decrease",
+                   self.default_db, "bots_caused_quality_increase")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS de_delta_quality,
+                t1.appearance AS in_appearance,
+                t2.delta_quality AS in_delta_quality,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_quality_increase",
+                   self.default_db, "bots_caused_quality_decrease")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio")
+
+        ## continue to compute the active period and total edits by the bots from those two sets
+        query = """
+            SELECT *
+                FROM `{}.{}`
+                LIMIT 100
+        """.format(self.default_db, "bots_increase_ratio")
+        self.query.run_query(query, self.default_db, "top_good_bots")
+
+        query = """
+            SELECT t1.bot AS bot,
+                t2.rev_timestamp AS timestamp,
+                t2.ns AS ns,
+                t2.add_template AS add_template
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.bot = t2.rev_user_text
+        """.format(self.default_db, "top_good_bots",
+                   self.default_db, self.raw_revs)
+        self.query.run_query(query, self.default_db, "good_bots_edits")
+
+        query = """
+            SELECT bot,
+                (MAX(timestamp) - MIN(timestamp)) / (3600*24*30) AS tenure,
+                COUNT(*) AS total_edits
+                FROM `{}.{}`
+                GROUP BY bot
+        """.format(self.default_db, "good_bots_edits")
+        self.query.run_query(query, self.default_db, "good_bots")
+        # avg tenure: 35.97
+        # avg edits: 55618.12
+
+        query = """
+            SELECT *
+                FROM `{}.{}`
+                LIMIT 100
+        """.format(self.default_db, "bots_decrease_ratio")
+        self.query.run_query(query, self.default_db, "top_bad_bots")
+
+        query = """
+            SELECT t1.bot AS bot,
+                t2.rev_timestamp AS timestamp,
+                t2.ns AS ns,
+                t2.add_template AS add_template
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.bot = t2.rev_user_text
+        """.format(self.default_db, "top_bad_bots",
+                   self.default_db, self.raw_revs)
+        self.query.run_query(query, self.default_db, "bad_bots_edits")
+
+        query = """
+            SELECT bot,
+                (MAX(timestamp) - MIN(timestamp)) / (3600*24*30) AS tenure,
+                COUNT(*) AS total_edits
+                FROM `{}.{}`
+                GROUP BY bot
+        """.format(self.default_db, "bad_bots_edits")
+        self.query.run_query(query, self.default_db, "bad_bots")
+        # avg tenure: 30.4
+        # avg edits: 34320.45
 
 
     def compute_CVs(self):

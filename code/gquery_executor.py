@@ -37,10 +37,973 @@ class Executor:
         # # merge all the variables
         # self.merging_tables()
 
-        # # finalize the table
+        # finalize the table
         # self.compute_variables()
 
-        self.generate_data_for_qualitative()
+        # self.generate_data_for_qualitative()
+        self.generate_data_for_qualitative_article_productivity()
+
+        self.generate_data_for_qualitative_project_coordination()
+
+        self.generate_data_for_qualitative_member_communication()
+
+        # self.create_user_pools()
+
+    def create_user_pools(self):
+
+        # v1: active in the project within 30 days
+        # v2: active in the project within 90 days
+        # v3: active in the project within most recent 500 edits
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.total_candidates AS new_total_v1,
+                (t1.total_candidates - t1.overlapped_candidates) AS new_unique_v1,
+                t2.total_candidates AS new_total_v2,
+                (t2.total_candidates - t2.overlapped_candidates) AS new_unique_v2
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "newcomers1",
+                   self.default_db, "newcomers2")
+        self.query.run_query(query, self.default_db, "newcomers_exp1")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.new_total_v1 AS new_total_v1,
+                t1.new_total_v2 AS new_total_v2,
+                t2.total_candidates AS new_total_v3,
+                t1.new_unique_v1 AS new_unique_v1,
+                t1.new_unique_v2 AS new_unique_v2,
+                (t2.total_candidates - t2.overlapped_candidates) AS new_unique_v3
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "newcomers_exp1",
+                   self.default_db, "newcomers3")
+        self.query.run_query(query, self.default_db, "newcomers_exp2")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.new_total_v1 AS new_total_v1,
+                t1.new_total_v2 AS new_total_v2,
+                t1.new_total_v3 AS new_total_v3,
+                t1.new_unique_v1 AS new_unique_v1,
+                t1.new_unique_v2 AS new_unique_v2,
+                t1.new_unique_v3 AS new_unique_v3,
+                t2.total_candidates AS exp_total_v1,
+                (t2.total_candidates - t2.overlapped_candidates) AS exp_unique_v1
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "newcomers_exp2",
+                   self.default_db, "experienced_editors1")
+        self.query.run_query(query, self.default_db, "newcomers_exp3")
+
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.new_total_v1 AS new_total_v1,
+                t1.new_total_v2 AS new_total_v2,
+                t1.new_total_v3 AS new_total_v3,
+                t1.new_unique_v1 AS new_unique_v1,
+                t1.new_unique_v2 AS new_unique_v2,
+                t1.new_unique_v3 AS new_unique_v3,
+                t1.exp_total_v1 AS exp_total_v1,
+                t2.total_candidates AS exp_total_v2,
+                t1.exp_unique_v1 AS exp_unique_v1,
+                (t2.total_candidates - t2.overlapped_candidates) AS exp_unique_v2
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "newcomers_exp3",
+                   self.default_db, "experienced_editors2")
+        self.query.run_query(query, self.default_db, "newcomers_exp4")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.new_total_v1 AS new_total_v1,
+                t1.new_total_v2 AS new_total_v2,
+                t1.new_total_v3 AS new_total_v3,
+                t1.new_unique_v1 AS new_unique_v1,
+                t1.new_unique_v2 AS new_unique_v2,
+                t1.new_unique_v3 AS new_unique_v3,
+                t1.exp_total_v1 AS exp_total_v1,
+                t1.exp_total_v2 AS exp_total_v2,
+                t2.total_candidates AS exp_total_v3,
+                t1.exp_unique_v1 AS exp_unique_v1,
+                t1.exp_unique_v2 AS exp_unique_v2,
+                (t2.total_candidates - t2.overlapped_candidates) AS exp_unique_v3
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+                ORDER BY t1.new_total_v1 DESC
+        """.format(self.default_db, "newcomers_exp4",
+                   self.default_db, "experienced_editors3")
+        self.query.run_query(query, self.default_db, "newcomers_exp5")
+
+        query = """
+            SELECT ranking,
+                LOWER(REPLACE(REPLACE(wikiproject, "_", ""), "WikiProject", "")) AS wikiproject,
+                non_bot_edits
+                FROM `{}.{}`
+        """.format(self.default_db, "active_wikiprojects_by45")
+        self.query.run_query(query, self.default_db, "active_wikiprojects")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t2.ranking AS ranking,
+                t1.new_total_v1 AS new_total_v1,
+                t1.new_total_v2 AS new_total_v2,
+                t1.new_total_v3 AS new_total_v3,
+                t1.new_unique_v1 AS new_unique_v1,
+                t1.new_unique_v2 AS new_unique_v2,
+                t1.new_unique_v3 AS new_unique_v3,
+                t1.exp_total_v1 AS exp_total_v1,
+                t1.exp_total_v2 AS exp_total_v2,
+                t1.exp_total_v3 AS exp_total_v3,
+                t1.exp_unique_v1 AS exp_unique_v1,
+                t1.exp_unique_v2 AS exp_unique_v2,
+                t1.exp_unique_v3 AS exp_unique_v3
+                FROM `{}.{}` AS t1
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
+                ORDER BY t2.ranking ASC
+        """.format(self.default_db, "newcomers_exp5",
+                   self.default_db, "active_wikiprojects")
+        self.query.run_query(query, self.default_db, "newcomers_exp")
+
+    ## 1. bot's edits on project pages that decrease project page activities
+    ## 2. bot's edits on member pages that increase project page activities
+    def generate_data_for_qualitative_project_coordination(self):
+        # analysis one: identify the bots that always appear in the time periods project page activities decrease
+        # top 20% periods that have the most decrease in article quality
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_project
+                FROM `{}.{}`
+                ORDER BY pct_dv_project ASC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor1")
+
+        # check which are the projects that have many project project coordination increase
+        query = """
+            SELECT wikiproject,
+                COUNT(*) AS cnt
+                FROM `{}.{}`
+                GROUP BY wikiproject
+                ORDER BY cnt DESC
+        """.format(self.default_db, "qualitative_analysis_project_coor1")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor2")
+
+        # These are edits made on project pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_project AS pct_dv_project,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_project_coor1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_project) AS pct_dv_project
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_project_coor3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor4")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_project) AS pct_dv_project,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_project_coor4")
+        self.query.run_query(query, self.default_db, "bots_caused_project_coor_decrease45")
+
+        # top 20% periods that have the most increase in article productivity
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_project
+                FROM `{}.{}`
+                ORDER BY pct_dv_project DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor5")
+
+        # These are edits made on project pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_project AS pct_dv_project,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_project_coor5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_project) AS pct_dv_project
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_project_coor6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor7")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_project) AS pct_dv_project,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_project_coor7")
+        self.query.run_query(query, self.default_db, "bots_caused_project_coor_increase45")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS pct_dv_project,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_project_coor_decrease45",
+                   self.default_db, "bots_caused_project_coor_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_art_prod45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS pct_dv_project,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_project_coor_increase45",
+                   self.default_db, "bots_caused_project_coor_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_project_coor45")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS de_project_coor,
+                t1.appearance AS de_appearance,
+                t2.pct_dv_project AS in_project_coor,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_project_coor_decrease45",
+                   self.default_db, "bots_caused_project_coor_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio_project_coor45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS de_project_coor,
+                t1.appearance AS in_appearance,
+                t2.pct_dv_project AS in_project_coor,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_project_coor_increase45",
+                   self.default_db, "bots_caused_project_coor_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio_project_coor45")
+
+        # These are edits made on member pages (type = 2)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_project AS pct_dv_project,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 2 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_project_coor1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_project) AS pct_dv_project
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_project_coor3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor4")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_project) AS pct_dv_project,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_project_coor4")
+        self.query.run_query(query, self.default_db, "bots_caused_project_coor_decrease23")
+
+        # top 20% periods that have the most increase in article productivity
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_project
+                FROM `{}.{}`
+                ORDER BY pct_dv_project DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor5")
+
+        # These are edits made on member pages (type = 2)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_project AS pct_dv_project,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 2 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_project_coor5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_project) AS pct_dv_project
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_project_coor6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_project_coor7")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_project) AS pct_dv_project,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_project_coor7")
+        self.query.run_query(query, self.default_db, "bots_caused_project_coor_increase23")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS pct_dv_project,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_project_coor_decrease23",
+                   self.default_db, "bots_caused_project_coor_increase23")
+        self.query.run_query(query, self.default_db, "bots_decrease_project_coor23")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS pct_dv_project,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_project_coor_increase23",
+                   self.default_db, "bots_caused_project_coor_decrease23")
+        self.query.run_query(query, self.default_db, "bots_increase_project_coor23")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS de_project_coor,
+                t1.appearance AS de_appearance,
+                t2.pct_dv_project AS in_project_coor,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_project_coor_decrease23",
+                   self.default_db, "bots_caused_project_coor_increase23")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio_project_coor23")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_project AS de_project_coor,
+                t1.appearance AS in_appearance,
+                t2.pct_dv_project AS in_project_coor,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_project_coor_increase23",
+                   self.default_db, "bots_caused_project_coor_decrease23")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio_project_coor23")
+
+
+    # 1. Bot's edits on project pages that decrease member communication
+    def generate_data_for_qualitative_member_communication(self):
+        # analysis one: identify the bots that always appear in the time periods
+        # top 20% periods that have the most decrease in member communication
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_member
+                FROM `{}.{}`
+                ORDER BY pct_dv_member ASC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm1")
+
+        # check which are the projects that have many member communication increase
+        query = """
+            SELECT wikiproject,
+                COUNT(*) AS cnt
+                FROM `{}.{}`
+                GROUP BY wikiproject
+                ORDER BY cnt DESC
+        """.format(self.default_db, "qualitative_analysis_member_comm1")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm2")
+
+        # These are edits made on project pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_member AS pct_dv_member,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_member_comm1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_member) AS pct_dv_member
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_member_comm3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm4")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_member) AS pct_dv_member,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_member_comm4")
+        self.query.run_query(query, self.default_db, "bots_caused_member_comm_decrease45")
+
+        # top 20% periods that have the most increase in member communication
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_member
+                FROM `{}.{}`
+                ORDER BY pct_dv_member DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm5")
+
+        # These are edits made on project pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_member AS pct_dv_member,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_member_comm5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_member) AS pct_dv_member
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_member_comm6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_member_comm7")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_member) AS pct_dv_member,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_member_comm7")
+        self.query.run_query(query, self.default_db, "bots_caused_member_comm_increase45")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_member AS pct_dv_member,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_member_comm_decrease45",
+                   self.default_db, "bots_caused_member_comm_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_member_comm45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_member AS pct_dv_member,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_member_comm_increase45",
+                   self.default_db, "bots_caused_member_comm_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_member_comm45")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_member AS de_member_comm,
+                t1.appearance AS de_appearance,
+                t2.pct_dv_member AS in_member_comm,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_member_comm_decrease45",
+                   self.default_db, "bots_caused_member_comm_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio_member_comm45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_member AS de_member_comm,
+                t1.appearance AS in_appearance,
+                t2.pct_dv_member AS in_member_comm,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_member_comm_increase45",
+                   self.default_db, "bots_caused_member_comm_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio_member_comm45")
+
+    # create tables of bots to answer two questions:
+    # 1. why bot edits on article pages increase article productivity
+    # 2. why bot edits on project pages increase article productivity
+    def generate_data_for_qualitative_article_productivity(self):
+        # analysis one: identify the bots that always appear in the time periods project article productivity decreased
+        # top 20% periods that have the most decrease in article quality
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_article
+                FROM `{}.{}`
+                ORDER BY pct_dv_article ASC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod1")
+
+        # check which are the projects that have many project article productivity decrease
+        query = """
+            SELECT wikiproject,
+                COUNT(*) AS cnt
+                FROM `{}.{}`
+                GROUP BY wikiproject
+                ORDER BY cnt DESC
+        """.format(self.default_db, "qualitative_analysis_art_prod1")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod2")
+
+        # These are edits made on article pages (type = 1)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_article AS pct_dv_article,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 1 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_art_prod1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_article) AS pct_dv_article
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_art_prod3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod4")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_article) AS pct_dv_article,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_art_prod4")
+        self.query.run_query(query, self.default_db, "bots_caused_art_prod_decrease01")
+
+        # top 20% periods that have the most increase in article productivity
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_article
+                FROM `{}.{}`
+                ORDER BY pct_dv_article DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod5")
+
+        # These are edits made on article pages (type = 1)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_article AS pct_dv_article,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 1 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_art_prod5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_article) AS pct_dv_article
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_art_prod6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod7")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_article) AS pct_dv_article,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_art_prod7")
+        self.query.run_query(query, self.default_db, "bots_caused_art_prod_increase01")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS pct_dv_article,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_art_prod_decrease01",
+                   self.default_db, "bots_caused_art_prod_increase01")
+        self.query.run_query(query, self.default_db, "bots_decrease_art_prod01")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS pct_dv_article,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_art_prod_increase01",
+                   self.default_db, "bots_caused_art_prod_decrease01")
+        self.query.run_query(query, self.default_db, "bots_increase_art_prod01")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS de_art_prod,
+                t1.appearance AS de_appearance,
+                t2.pct_dv_article AS in_art_prod,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_art_prod_decrease01",
+                   self.default_db, "bots_caused_art_prod_increase01")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio_art_prod01")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS de_art_prod,
+                t1.appearance AS in_appearance,
+                t2.pct_dv_article AS in_art_prod,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_art_prod_increase01",
+                   self.default_db, "bots_caused_art_prod_decrease01")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio_art_prod01")
+
+
+        ## Work on namespace 45 - how project page edits increases article productivity
+        # These are edits made on article pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_article AS pct_dv_article,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_art_prod1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_article) AS pct_dv_article
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_art_prod3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod4")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_article) AS pct_dv_article,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_art_prod4")
+        self.query.run_query(query, self.default_db, "bots_caused_art_prod_decrease45")
+
+        # top 20% periods that have the most increase in article productivity
+        query = """
+            SELECT wikiproject,
+                time_index,
+                pct_dv_article
+                FROM `{}.{}`
+                ORDER BY delta_quality DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod5")
+
+        # These are edits made on article pages (type = 3)
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.pct_dv_article AS pct_dv_article,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 3 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis_art_prod5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(pct_dv_article) AS pct_dv_article
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis_art_prod6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod7")
+
+        query = """
+            SELECT user_text,
+                AVG(pct_dv_article) AS pct_dv_article,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis_art_prod7")
+        self.query.run_query(query, self.default_db, "bots_caused_art_prod_increase45")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS pct_dv_article,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_art_prod_decrease45",
+                   self.default_db, "bots_caused_art_prod_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_art_prod45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS pct_dv_article,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_art_prod_increase45",
+                   self.default_db, "bots_caused_art_prod_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_art_prod45")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS de_art_prod,
+                t1.appearance AS de_appearance,
+                t2.pct_dv_article AS in_art_prod,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_art_prod_decrease45",
+                   self.default_db, "bots_caused_art_prod_increase45")
+        self.query.run_query(query, self.default_db, "bots_decrease_ratio_art_prod45")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.pct_dv_article AS de_art_prod,
+                t1.appearance AS in_appearance,
+                t2.pct_dv_article AS in_art_prod,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_art_prod_increase45",
+                   self.default_db, "bots_caused_art_prod_decrease45")
+        self.query.run_query(query, self.default_db, "bots_increase_ratio_art_prod45")
 
 
     def generate_data_for_qualitative(self):
@@ -319,6 +1282,7 @@ class Executor:
         self.query.run_query(query, self.default_db, "cv_active_members")
 
     def project_quality_change(self):
+
         # article quality at the beginning of each time period
         query = """
             SELECT LOWER(t1.title) AS article,
@@ -340,6 +1304,12 @@ class Executor:
         self.query.run_query(query, self.default_db, "article_quality1")
 
         query = """
+            SELECT COUNT(DISTINCT(title)) AS total_articles
+            FROM `{}.{}`
+        """.format(self.default_db, "article_quality_2016")
+        self.query.run_query(query, self.default_db, "article_quality_total")
+
+        query = """
             SELECT t1.article AS article,
                 t1.quality AS quality,
                 t2.wikiproject AS wikiproject,
@@ -354,13 +1324,36 @@ class Executor:
         self.query.run_query(query, self.default_db, "article_quality2")
 
         query = """
+            SELECT t1.article AS article,
+                t1.quality AS quality,
+                t1.wikiproject AS wikiproject,
+                t1.starting_time AS starting_time,
+                t1.index AS index,
+                t1.next_index AS next_index,
+                t2.total_articles
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+        """.format(self.default_db, "article_quality2",
+                   self.default_db, "article_quality_total")
+        self.query.run_query(query, self.default_db, "article_quality3")
+
+        query = """
             SELECT wikiproject,
                 index,
-                AVG(quality) AS avg_quality
+                SUM(quality) AS total_quality,
+                AVG(total_articles) AS total_articles
                 FROM `{}.{}`
                 GROUP BY wikiproject, index
-        """.format(self.default_db, "article_quality2")
-        self.query.run_query(query, self.default_db, "article_quality3")
+        """.format(self.default_db, "article_quality3")
+        self.query.run_query(query, self.default_db, "article_quality4")
+
+        query = """
+            SELECT wikiproject,
+                index,
+                (total_quality / total_articles) AS avg_quality
+                FROM `{}.{}`
+        """.format(self.default_db, "article_quality4")
+        self.query.run_query(query, self.default_db, "article_quality5")
 
         query = """
             SELECT wikiproject,
@@ -368,8 +1361,8 @@ class Executor:
                 index,
                 (index+1) AS next_index
                 FROM `{}.{}`
-        """.format(self.default_db, "article_quality3")
-        self.query.run_query(query, self.default_db, "article_quality4")
+        """.format(self.default_db, "article_quality5")
+        self.query.run_query(query, self.default_db, "article_quality6")
 
         query = """
             SELECT t1.wikiproject AS wikiproject,
@@ -379,9 +1372,9 @@ class Executor:
                 FROM `{}.{}` AS t1
                 INNER JOIN `{}.{}` AS t2
                 ON t1.next_index = t2.index AND t1.wikiproject = t2.wikiproject
-        """.format(self.default_db, "article_quality4",
-                   self.default_db, "article_quality4")
-        self.query.run_query(query, self.default_db, "article_quality5")
+        """.format(self.default_db, "article_quality6",
+                   self.default_db, "article_quality6")
+        self.query.run_query(query, self.default_db, "article_quality7")
 
         query = """
             SELECT wikiproject,
@@ -391,9 +1384,8 @@ class Executor:
                 (next_quality - quality) AS delta_quality
                 FROM `{}.{}`
                 ORDER BY wikiproject, index
-        """.format(self.default_db, "article_quality5")
+        """.format(self.default_db, "article_quality7")
         self.query.run_query(query, self.default_db, "article_quality_final")
-
 
 
     def generate_longitudinal_IVDVs(self):
@@ -1721,6 +2713,9 @@ class Executor:
                 t1.cv_active_members AS cv_active_members,
                 t1.cv_wp_tenure AS cv_wp_tenure,
                 t2.total_edits AS cv_pre_edits,
+                t2.dv_article AS cv_pre_article,
+                t2.dv_member AS cv_pre_member,
+                t2.dv_project AS cv_pre_project,
                 t1.article_bot AS article_bot,
                 t1.member_bot AS member_bot,
                 t1.project_bot AS project_bot
@@ -1761,6 +2756,9 @@ class Executor:
                 cv_total_template,
                 cv_project_scope,
                 cv_pre_edits,
+                cv_pre_article,
+                cv_pre_member,
+                cv_pre_project,
                 cv_active_members,
                 cv_wp_tenure,
                 (1.0 * contain_template / (total_edits+1)) AS pct_contain_template,
@@ -1782,6 +2780,9 @@ class Executor:
                 (1.0 * (next_dv_article-dv_article) / (dv_article+1)) AS pct_dv_article,
                 (1.0 * (next_dv_member-dv_member) / (dv_member+1)) AS pct_dv_member,
                 (1.0 * (next_dv_project-dv_project) / (dv_project+1)) AS pct_dv_project,
+                article_bot,
+                member_bot,
+                project_bot,
                 (1.0 * article_bot / (dv_article+1)) AS pct_article_bot,
                 (1.0 * member_bot / (dv_member+1)) AS pct_member_bot,
                 (1.0 * project_bot / (dv_project+1)) AS pct_project_bot
@@ -1820,6 +2821,9 @@ class Executor:
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
                 t1.cv_pre_edits AS cv_pre_edits,
+                t1.cv_pre_article AS cv_pre_article,
+                t1.cv_pre_member AS cv_pre_member,
+                t1.cv_pre_project AS cv_pre_project,
                 t1.cv_active_members AS cv_active_members,
                 t1.cv_wp_tenure AS cv_wp_tenure,
                 t1.pct_contain_template AS pct_contain_template,
@@ -1841,6 +2845,9 @@ class Executor:
                 t1.pct_dv_article AS pct_dv_article,
                 t1.pct_dv_member AS pct_dv_member,
                 t1.pct_dv_project AS pct_dv_project,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
                 t1.pct_article_bot AS pct_article_bot,
                 t1.pct_member_bot AS pct_member_bot,
                 t1.pct_project_bot AS pct_project_bot,

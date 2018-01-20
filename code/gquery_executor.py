@@ -900,7 +900,7 @@ class Executor:
                 time_index,
                 pct_dv_article
                 FROM `{}.{}`
-                ORDER BY delta_quality DESC
+                ORDER BY pct_dv_article DESC
                 LIMIT 7200
         """.format(self.default_db, "automation_final_table")
         self.query.run_query(query, self.default_db, "qualitative_analysis_art_prod5")

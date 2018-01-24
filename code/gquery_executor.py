@@ -29,23 +29,24 @@ class Executor:
         # self.create_longitudinal_data()
         # self.create_variable_types_by_longitudinal_data()
         #
-        # # compute quality as DVs
+        # # # compute quality as DVs
         # self.project_quality_change()
-
-        # self.compute_CVs()
-
-        # # merge all the variables
+        #
+        # # self.compute_CVs()
+        #
+        # # # merge all the variables
         # self.merging_tables()
-
-        # finalize the table
+        #
+        # # # finalize the table
         # self.compute_variables()
 
-        # self.generate_data_for_qualitative()
-        self.generate_data_for_qualitative_article_productivity()
+        self.generate_data_for_qualitative_article_quality()
 
-        self.generate_data_for_qualitative_project_coordination()
-
-        self.generate_data_for_qualitative_member_communication()
+        # self.generate_data_for_qualitative_article_productivity()
+        #
+        # self.generate_data_for_qualitative_project_coordination()
+        #
+        # self.generate_data_for_qualitative_member_communication()
 
         # self.create_user_pools()
 
@@ -1006,7 +1007,7 @@ class Executor:
         self.query.run_query(query, self.default_db, "bots_increase_ratio_art_prod45")
 
 
-    def generate_data_for_qualitative(self):
+    def generate_data_for_qualitative_article_quality(self):
 
         # analysis one: identify the bots that always appear in the time periods project article quality decreased
         # top 20% periods that have the most decrease in article quality
@@ -1157,11 +1158,11 @@ class Executor:
                  FROM `{}.{}` AS t1
                  INNER JOIN `{}.{}` AS t2
                  ON t1.user_text = t2.user_text
-                 WHERE (t1.appearance + t2.appearance) > 10
+                 WHERE (t1.appearance + t2.appearance) > 10 AND t1.delta_quality < 0
                  ORDER BY de_ratio DESC
         """.format(self.default_db, "bots_caused_quality_decrease",
                    self.default_db, "bots_caused_quality_increase")
-        self.query.run_query(query, self.default_db, "bots_decrease_ratio")
+        self.query.run_query(query, self.default_db, "bots_quality_decrease_ratio01")
 
         query = """
             SELECT t1.user_text AS bot,
@@ -1177,7 +1178,7 @@ class Executor:
                  ORDER BY in_ratio DESC
         """.format(self.default_db, "bots_caused_quality_increase",
                    self.default_db, "bots_caused_quality_decrease")
-        self.query.run_query(query, self.default_db, "bots_increase_ratio")
+        self.query.run_query(query, self.default_db, "bots_quality_increase_ratio01")
 
         ## continue to compute the active period and total edits by the bots from those two sets
         query = """
@@ -1240,6 +1241,154 @@ class Executor:
         # avg tenure: 30.4
         # avg edits: 34320.45
 
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.delta_quality AS delta_quality,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 2 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis1",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis3")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(delta_quality) AS delta_quality
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis3")
+        self.query.run_query(query, self.default_db, "qualitative_analysis4")
+
+        query = """
+            SELECT user_text,
+                AVG(delta_quality) AS delta_quality,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis4")
+        self.query.run_query(query, self.default_db, "bots_caused_quality_decrease")
+
+        # top 20% periods that have the most decrease in article quality
+        query = """
+            SELECT wikiproject,
+                time_index,
+                delta_quality
+                FROM `{}.{}`
+                ORDER BY delta_quality DESC
+                LIMIT 7200
+        """.format(self.default_db, "automation_final_table")
+        self.query.run_query(query, self.default_db, "qualitative_analysis5")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.delta_quality AS delta_quality,
+                t2.user_text AS user_text,
+                t2.ns AS ns,
+                t2.add_template AS add_template,
+                t2.contain_template AS contain_template
+                FROM `{}.{}` AS t1
+                CROSS JOIN `{}.{}` AS t2
+                WHERE t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index AND t2.type = 2 AND t2.is_bot = 1
+        """.format(self.default_db, "qualitative_analysis5",
+                   self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "qualitative_analysis6")
+
+        # TODO: set threshold for the count
+        query = """
+            SELECT wikiproject,
+                time_index,
+                user_text,
+                COUNT(*) AS bot_edits,
+                AVG(delta_quality) AS delta_quality
+                FROM `{}.{}`
+                GROUP BY wikiproject, time_index, user_text
+                HAVING bot_edits >= 2
+                ORDER BY wikiproject, time_index
+        """.format(self.default_db, "qualitative_analysis6")
+        self.query.run_query(query, self.default_db, "qualitative_analysis7")
+
+        query = """
+            SELECT user_text,
+                AVG(delta_quality) AS delta_quality,
+                COUNT(*) AS appearance
+                FROM `{}.{}`
+                GROUP BY user_text
+                ORDER BY appearance DESC
+        """.format(self.default_db, "qualitative_analysis7")
+        self.query.run_query(query, self.default_db, "bots_caused_quality_increase")
+
+        # removing overlaps of the two sets of bots
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS delta_quality,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_quality_decrease",
+                   self.default_db, "bots_caused_quality_increase")
+        self.query.run_query(query, self.default_db, "bots_decrease_quality")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS delta_quality,
+                t1.appearance AS appearance
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.user_text = t2.user_text
+                WHERE t2.user_text IS NULL
+                ORDER BY appearance DESC
+        """.format(self.default_db, "bots_caused_quality_increase",
+                   self.default_db, "bots_caused_quality_decrease")
+        self.query.run_query(query, self.default_db, "bots_increase_quality")
+
+        # check the ratio of the two sets
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS de_delta_quality,
+                t1.appearance AS de_appearance,
+                t2.delta_quality AS in_delta_quality,
+                t2.appearance AS in_appearance,
+                (t1.appearance / t2.appearance) AS de_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY de_ratio DESC
+        """.format(self.default_db, "bots_caused_quality_decrease",
+                   self.default_db, "bots_caused_quality_increase")
+        self.query.run_query(query, self.default_db, "bots_quality_decrease_ratio23")
+
+        query = """
+            SELECT t1.user_text AS bot,
+                t1.delta_quality AS de_delta_quality,
+                t1.appearance AS in_appearance,
+                t2.delta_quality AS in_delta_quality,
+                t2.appearance AS de_appearance,
+                (t1.appearance / t2.appearance) AS in_ratio
+                 FROM `{}.{}` AS t1
+                 INNER JOIN `{}.{}` AS t2
+                 ON t1.user_text = t2.user_text
+                 WHERE (t1.appearance + t2.appearance) > 10
+                 ORDER BY in_ratio DESC
+        """.format(self.default_db, "bots_caused_quality_increase",
+                   self.default_db, "bots_caused_quality_decrease")
+        self.query.run_query(query, self.default_db, "bots_quality_increase_ratio23")
 
     def compute_CVs(self):
         # project tenure
@@ -1292,21 +1441,30 @@ class Executor:
                     WHEN t1.prediction = "B" THEN 4
                     WHEN t1.prediction = "A" THEN 5
                     WHEN t1.prediction = "GA" THEN 6
-                    ELSE 7
+                    WHEN t1.prediction = "FA" THEN 7
+                    ELSE 0
                     END AS quality,
                     t2.starting_time AS starting_time,
                     t2.index AS index
                 FROM `{}.{}` AS t1
                 INNER JOIN `{}.{}` AS t2
-                ON t1.timestamp = t2.starting_date
+                ON t1.timestamp = t2.ending_date
         """.format(self.default_db, "article_quality_2016",
                    self.default_db, self.time_table)
         self.query.run_query(query, self.default_db, "article_quality1")
 
+        # query = """
+        #     SELECT COUNT(DISTINCT(title)) AS total_article
+        #     FROM `{}.{}`
+        # """.format(self.default_db, "article_quality_2016")
+        # self.query.run_query(query, self.default_db, "article_quality_total")
+
         query = """
-            SELECT COUNT(DISTINCT(title)) AS total_articles
-            FROM `{}.{}`
-        """.format(self.default_db, "article_quality_2016")
+            SELECT wikiproject,
+                COUNT(*) AS total_article
+                FROM `{}.{}`
+                GROUP BY wikiproject
+        """.format(self.default_db, "article_projects_2017")
         self.query.run_query(query, self.default_db, "article_quality_total")
 
         query = """
@@ -1323,6 +1481,20 @@ class Executor:
                    self.default_db, "article_projects_2017")
         self.query.run_query(query, self.default_db, "article_quality2")
 
+        # query = """
+        #     SELECT t1.article AS article,
+        #         t1.quality AS quality,
+        #         t1.wikiproject AS wikiproject,
+        #         t1.starting_time AS starting_time,
+        #         t1.index AS index,
+        #         t1.next_index AS next_index,
+        #         t2.total_article AS total_article
+        #         FROM `{}.{}` AS t1
+        #         CROSS JOIN `{}.{}` AS t2
+        # """.format(self.default_db, "article_quality2",
+        #            self.default_db, "article_quality_total")
+        # self.query.run_query(query, self.default_db, "article_quality3")
+
         query = """
             SELECT t1.article AS article,
                 t1.quality AS quality,
@@ -1330,9 +1502,10 @@ class Executor:
                 t1.starting_time AS starting_time,
                 t1.index AS index,
                 t1.next_index AS next_index,
-                t2.total_articles
+                t2.total_article AS total_article
                 FROM `{}.{}` AS t1
-                CROSS JOIN `{}.{}` AS t2
+                INNER JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject
         """.format(self.default_db, "article_quality2",
                    self.default_db, "article_quality_total")
         self.query.run_query(query, self.default_db, "article_quality3")
@@ -1341,7 +1514,7 @@ class Executor:
             SELECT wikiproject,
                 index,
                 SUM(quality) AS total_quality,
-                AVG(total_articles) AS total_articles
+                AVG(total_article) AS total_article
                 FROM `{}.{}`
                 GROUP BY wikiproject, index
         """.format(self.default_db, "article_quality3")
@@ -1350,7 +1523,7 @@ class Executor:
         query = """
             SELECT wikiproject,
                 index,
-                (total_quality / total_articles) AS avg_quality
+                (total_quality / total_article) AS avg_quality
                 FROM `{}.{}`
         """.format(self.default_db, "article_quality4")
         self.query.run_query(query, self.default_db, "article_quality5")

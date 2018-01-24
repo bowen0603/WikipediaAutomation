@@ -26,6 +26,9 @@ xtset nwikiproject
 * time index: no change
 * previous total edits?
 
+gen l_cv_total_by_bots = ln(by_bots+1) / ln(2)
+egen ls_cv_total_by_bots = std(l_cv_total_by_bots)
+
 gen l_cv_total_template = ln(cv_total_template+1) / ln(2)
 egen ls_cv_total_template = std(l_cv_total_template)
 

@@ -32,15 +32,15 @@ class Executor:
         # # # compute quality as DVs
         # self.project_quality_change()
         #
-        # # self.compute_CVs()
+        # self.compute_CVs()
         #
         # # # merge all the variables
-        # self.merging_tables()
+        self.merging_tables()
         #
         # # # finalize the table
-        # self.compute_variables()
+        self.compute_variables()
 
-        self.generate_data_for_qualitative_article_quality()
+        # self.generate_data_for_qualitative_article_quality()
 
         # self.generate_data_for_qualitative_article_productivity()
         #
@@ -2087,6 +2087,26 @@ class Executor:
         """.format(self.default_db, "lng_rev_type_ns012345")
         self.query.run_query(query, self.default_db, "lng_edits_total")
 
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS total_edits_bot
+            FROM `{}.{}`
+            WHERE is_bot = 1
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_total_bot")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS total_edits_human
+            FROM `{}.{}`
+            WHERE is_bot = 0
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_total_human")
+
         # total edits on article pages for DV
         query = """
             SELECT wikiproject,
@@ -2097,6 +2117,26 @@ class Executor:
             GROUP BY wikiproject, time_index
         """.format(self.default_db, "lng_rev_type_ns012345")
         self.query.run_query(query, self.default_db, "lng_edits_dv_article")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_article_bot
+            FROM `{}.{}`
+            WHERE type = 1 AND is_bot = 1
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_article_bot")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_article_human
+            FROM `{}.{}`
+            WHERE type = 1 AND is_bot = 0
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_article_human")
 
         # total edits on member pages for DV
         query = """
@@ -2109,6 +2149,26 @@ class Executor:
         """.format(self.default_db, "lng_rev_type_ns012345")
         self.query.run_query(query, self.default_db, "lng_edits_dv_member")
 
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_member_bot
+            FROM `{}.{}`
+            WHERE type = 2 AND is_bot = 1
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_member_bot")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_member_human
+            FROM `{}.{}`
+            WHERE type = 2 AND is_bot = 0
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_member_human")
+
         # total edits on article pages for DV
         query = """
             SELECT wikiproject,
@@ -2119,6 +2179,26 @@ class Executor:
             GROUP BY wikiproject, time_index
         """.format(self.default_db, "lng_rev_type_ns012345")
         self.query.run_query(query, self.default_db, "lng_edits_dv_project")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_project_bot
+            FROM `{}.{}`
+            WHERE type = 3 AND is_bot = 1
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_project_bot")
+
+        query = """
+            SELECT wikiproject,
+            time_index,
+            COUNT(*) AS dv_project_human
+            FROM `{}.{}`
+            WHERE type = 3 AND is_bot = 0
+            GROUP BY wikiproject, time_index
+        """.format(self.default_db, "lng_rev_type_ns012345")
+        self.query.run_query(query, self.default_db, "lng_edits_dv_project_human")
 
 
         ## Model X - bot edits on different namespaces
@@ -2760,6 +2840,331 @@ class Executor:
                 ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.index
         """.format(self.default_db, "merging24",
                    self.default_db, "cv_project_tenure")
+        self.query.run_query(query, self.default_db, "merging25")
+
+        # merging bot/human edits as DV
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                IFNULL(t2.total_edits_bot, 0) AS total_edits_bot,
+                t1.dv_article AS dv_article,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging25",
+                   self.default_db, "lng_edits_total_bot")
+        self.query.run_query(query, self.default_db, "merging26")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                IFNULL(t2.total_edits_human, 0) AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging26",
+                   self.default_db, "lng_edits_total_human")
+        self.query.run_query(query, self.default_db, "merging27")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                IFNULL(t2.dv_article_bot, 0) AS total_article_bot,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging27",
+                   self.default_db, "lng_edits_dv_article_bot")
+        self.query.run_query(query, self.default_db, "merging28")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.total_article_bot AS total_article_bot,
+                IFNULL(t2.dv_article_human, 0) AS total_article_human,
+                t1.dv_member AS dv_member,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging28",
+                   self.default_db, "lng_edits_dv_article_human")
+        self.query.run_query(query, self.default_db, "merging29")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.total_article_bot AS total_article_bot,
+                t1.total_article_human AS total_article_human,
+                t1.dv_member AS dv_member,
+                IFNULL(t2.dv_member_bot, 0) AS total_member_bot,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging29",
+                   self.default_db, "lng_edits_dv_member_bot")
+        self.query.run_query(query, self.default_db, "merging30")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.total_article_bot AS total_article_bot,
+                t1.total_article_human AS total_article_human,
+                t1.dv_member AS dv_member,
+                t1.total_member_bot AS total_member_bot,
+                IFNULL(t2.dv_member_human, 0) AS total_member_human,
+                t1.dv_project AS dv_project,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging30",
+                   self.default_db, "lng_edits_dv_member_human")
+        self.query.run_query(query, self.default_db, "merging31")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.total_article_bot AS total_article_bot,
+                t1.total_article_human AS total_article_human,
+                t1.dv_member AS dv_member,
+                t1.total_member_bot AS total_member_bot,
+                t1.total_member_human AS total_member_human,
+                t1.dv_project AS dv_project,
+                IFNULL(t2.dv_project_bot, 0) AS total_project_bot,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging31",
+                   self.default_db, "lng_edits_dv_project_bot")
+        self.query.run_query(query, self.default_db, "merging32")
+
+        query = """
+            SELECT t1.wikiproject AS wikiproject,
+                t1.time_index AS time_index,
+                t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
+                t1.dv_article AS dv_article,
+                t1.total_article_bot AS dv_article_bot,
+                t1.total_article_human AS dv_article_human,
+                t1.dv_member AS dv_member,
+                t1.total_member_bot AS dv_member_bot,
+                t1.total_member_human AS dv_member_human,
+                t1.dv_project AS dv_project,
+                t1.total_project_bot AS dv_project_bot,
+                IFNULL(t2.dv_project_human, 0) AS dv_project_human,
+                t1.contain_template AS contain_template,
+                t1.by_bots AS by_bots,
+                t1.template_bots AS template_bots,
+                t1.template_editors AS template_editors,
+                t1.non_template_editors AS non_template_editors,
+                t1.non_template_bots AS non_template_bots,
+                t1.template_article AS template_article,
+                t1.template_member AS template_member,
+                t1.template_project AS template_project,
+                t1.template_article_bot AS template_article_bot,
+                t1.template_member_bot AS template_member_bot,
+                t1.template_project_bot AS template_project_bot,
+                t1.template_article_editor AS template_article_editor,
+                t1.template_member_editor AS template_member_editor,
+                t1.template_project_editor AS template_project_editor,
+                t1.cv_total_template AS cv_total_template,
+                t1.article_bot AS article_bot,
+                t1.member_bot AS member_bot,
+                t1.project_bot AS project_bot,
+                t1.cv_project_scope AS cv_project_scope,
+                t1.cv_active_members AS cv_active_members,
+                t1.cv_wp_tenure AS cv_wp_tenure
+                FROM `{}.{}` AS t1
+                LEFT JOIN `{}.{}` AS t2
+                ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "merging32",
+                   self.default_db, "lng_edits_dv_project_human")
         self.query.run_query(query, self.default_db, "merging_final")
 
 
@@ -2771,9 +3176,17 @@ class Executor:
                 t2.nwikiproject AS nwikiproject,
                 t1.time_index AS time_index,
                 t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
                 t1.dv_article AS dv_article,
+                t1.dv_article_bot AS dv_article_bot,
+                t1.dv_article_human AS dv_article_human,
                 t1.dv_member AS dv_member,
+                t1.dv_member_bot AS dv_member_bot,
+                t1.dv_member_human AS dv_member_human,
                 t1.dv_project AS dv_project,
+                t1.dv_project_bot AS dv_project_bot,
+                t1.dv_project_human AS dv_project_human,
                 t1.contain_template AS contain_template,
                 t1.by_bots AS by_bots,
                 t1.template_bots AS template_bots,
@@ -2818,9 +3231,17 @@ class Executor:
                 t1.time_index AS time_index,
                 t1.pre_time AS pre_time,
                 t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
                 t1.dv_article AS dv_article,
+                t1.dv_article_bot AS dv_article_bot,
+                t1.dv_article_human AS dv_article_human,
                 t1.dv_member AS dv_member,
+                t1.dv_member_bot AS dv_member_bot,
+                t1.dv_member_human AS dv_member_human,
                 t1.dv_project AS dv_project,
+                t1.dv_project_bot AS dv_project_bot,
+                t1.dv_project_human AS dv_project_human,
                 t1.contain_template AS contain_template,
                 t1.by_bots AS by_bots,
                 t1.template_bots AS template_bots,
@@ -2837,9 +3258,17 @@ class Executor:
                 t1.template_member_editor AS template_member_editor,
                 t1.template_project_editor AS template_project_editor,
                 t2.total_edits AS next_total,
+                t2.total_edits_bot AS next_total_bot,
+                t2.total_edits_human AS next_total_human,
                 t2.dv_article AS next_dv_article,
+                t2.dv_article_bot AS next_dv_article_bot,
+                t2.dv_article_human AS next_dv_article_human,
                 t2.dv_member AS next_dv_member,
+                t2.dv_member_bot AS next_dv_member_bot,
+                t2.dv_member_human AS next_dv_member_human,
                 t2.dv_project AS next_dv_project,
+                t2.dv_project_bot AS next_dv_project_bot,
+                t2.dv_project_human AS next_dv_project_human,
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
                 t1.cv_active_members AS cv_active_members,
@@ -2859,9 +3288,17 @@ class Executor:
                 t1.nwikiproject AS nwikiproject,
                 t1.time_index AS time_index,
                 t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
                 t1.dv_article AS dv_article,
+                t1.dv_article_bot AS dv_article_bot,
+                t1.dv_article_human AS dv_article_human,
                 t1.dv_member AS dv_member,
+                t1.dv_member_bot AS dv_member_bot,
+                t1.dv_member_human AS dv_member_human,
                 t1.dv_project AS dv_project,
+                t1.dv_project_bot AS dv_project_bot,
+                t1.dv_project_human AS dv_project_human,
                 t1.contain_template AS contain_template,
                 t1.by_bots AS by_bots,
                 t1.template_bots AS template_bots,
@@ -2878,9 +3315,17 @@ class Executor:
                 t1.template_member_editor AS template_member_editor,
                 t1.template_project_editor AS template_project_editor,
                 t1.next_total AS next_total,
+                t1.next_total_bot AS next_total_bot,
+                t1.next_total_human AS next_total_human,
                 t1.next_dv_article AS next_dv_article,
+                t1.next_dv_article_bot AS next_dv_article_bot,
+                t1.next_dv_article_human AS next_dv_article_human,
                 t1.next_dv_member AS next_dv_member,
+                t1.next_dv_member_bot AS next_dv_member_bot,
+                t1.next_dv_member_human AS next_dv_member_human,
                 t1.next_dv_project AS next_dv_project,
+                t1.next_dv_project_bot AS next_dv_project_bot,
+                t1.next_dv_project_human AS next_dv_project_human,
                 t1.cv_total_template AS cv_total_template,
                 t1.cv_project_scope AS cv_project_scope,
                 t1.cv_active_members AS cv_active_members,
@@ -2904,13 +3349,29 @@ class Executor:
                 nwikiproject,
                 time_index,
                 total_edits,
+                total_edits_bot,
+                total_edits_human,
                 dv_article,
+                dv_article_bot,
+                dv_article_human,
                 dv_member,
+                dv_member_bot,
+                dv_member_human,
                 dv_project,
+                dv_project_bot,
+                dv_project_human,
                 next_total,
+                next_total_bot,
+                next_total_human,
                 next_dv_article,
+                next_dv_article_bot,
+                next_dv_article_human,
                 next_dv_member,
+                next_dv_member_bot,
+                next_dv_member_human,
                 next_dv_project,
+                next_dv_project_bot,
+                next_dv_project_human,
                 contain_template,
                 by_bots,
                 template_bots,
@@ -2950,9 +3411,17 @@ class Executor:
                 (1.0 * template_member_editor / (total_edits+1)) AS pct_template_member_editor,
                 (1.0 * template_project_editor / (total_edits+1)) AS pct_template_project_editor,
                 (1.0 * (next_total-total_edits) / (total_edits+1)) AS pct_dv_total,
+                (1.0 * (next_total_bot-total_edits_bot) / (total_edits_bot+1)) AS pct_dv_total_bot,
+                (1.0 * (next_total_human-total_edits_human) / (total_edits_human+1)) AS pct_dv_total_human,
                 (1.0 * (next_dv_article-dv_article) / (dv_article+1)) AS pct_dv_article,
+                (1.0 * (next_dv_article_bot-dv_article_bot) / (dv_article_bot+1)) AS pct_dv_article_bot,
+                (1.0 * (next_dv_article_human-dv_article_human) / (dv_article_human+1)) AS pct_dv_article_human,
                 (1.0 * (next_dv_member-dv_member) / (dv_member+1)) AS pct_dv_member,
+                (1.0 * (next_dv_member_bot-dv_member_bot) / (dv_member_bot+1)) AS pct_dv_member_bot,
+                (1.0 * (next_dv_member_human-dv_member) / (dv_member_human+1)) AS pct_dv_member_human,
                 (1.0 * (next_dv_project-dv_project) / (dv_project+1)) AS pct_dv_project,
+                (1.0 * (next_dv_project_bot-dv_project_bot) / (dv_project_bot+1)) AS pct_dv_project_bot,
+                (1.0 * (next_dv_project_human-dv_project_human) / (dv_project_human+1)) AS pct_dv_project_human,
                 article_bot,
                 member_bot,
                 project_bot,
@@ -2969,13 +3438,29 @@ class Executor:
                 t1.nwikiproject AS nwikiproject,
                 t1.time_index AS time_index,
                 t1.total_edits AS total_edits,
+                t1.total_edits_bot AS total_edits_bot,
+                t1.total_edits_human AS total_edits_human,
                 t1.dv_article AS dv_article,
+                t1.dv_article_bot AS dv_article_bot,
+                t1.dv_article_human AS dv_article_human,
                 t1.dv_member AS dv_member,
+                t1.dv_member_bot AS dv_member_bot,
+                t1.dv_member_human AS dv_member_human,
                 t1.dv_project AS dv_project,
+                t1.dv_project_bot AS dv_project_bot,
+                t1.dv_project_human AS dv_project_human,
                 t1.next_total AS next_total,
+                t1.next_total_bot AS next_total_bot,
+                t1.next_total_human AS next_total_human,
                 t1.next_dv_article AS next_dv_article,
+                t1.next_dv_article_bot AS next_dv_article_bot,
+                t1.next_dv_article_human AS next_dv_article_human,
                 t1.next_dv_member AS next_dv_member,
+                t1.next_dv_member_bot AS next_dv_member_bot,
+                t1.next_dv_member_human AS next_dv_member_human,
                 t1.next_dv_project AS next_dv_project,
+                t1.next_dv_project_bot AS next_dv_project_bot,
+                t1.next_dv_project_human AS next_dv_project_human,
                 t1.contain_template AS contain_template,
                 t1.by_bots AS by_bots,
                 t1.template_bots AS template_bots,
@@ -3015,9 +3500,17 @@ class Executor:
                 t1.pct_template_member_editor AS pct_template_member_editor,
                 t1.pct_template_project_editor AS pct_template_project_editor,
                 t1.pct_dv_total AS pct_dv_total,
+                t1.pct_dv_total_bot AS pct_dv_total_bot,
+                t1.pct_dv_total_human AS pct_dv_total_human,
                 t1.pct_dv_article AS pct_dv_article,
+                t1.pct_dv_article_bot AS pct_dv_article_bot,
+                t1.pct_dv_article_human AS pct_dv_article_human,
                 t1.pct_dv_member AS pct_dv_member,
+                t1.pct_dv_member_bot AS pct_dv_member_bot,
+                t1.pct_dv_member_human AS pct_dv_member_human,
                 t1.pct_dv_project AS pct_dv_project,
+                t1.pct_dv_project_bot AS pct_dv_project_bot,
+                t1.pct_dv_project_human AS pct_dv_project_human,
                 t1.article_bot AS article_bot,
                 t1.member_bot AS member_bot,
                 t1.project_bot AS project_bot,

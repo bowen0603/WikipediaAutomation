@@ -35,10 +35,10 @@ class Executor:
         # self.compute_CVs()
         #
         # # # merge all the variables
-        self.merging_tables()
+        # self.merging_tables()
         #
         # # # finalize the table
-        self.compute_variables()
+        # self.compute_variables()
 
         # self.generate_data_for_qualitative_article_quality()
 
@@ -49,6 +49,212 @@ class Executor:
         # self.generate_data_for_qualitative_member_communication()
 
         # self.create_user_pools()
+
+        self.single_bot_analysis()
+
+    def single_bot_analysis(self):
+        # compute the # of bots edits within the scope on the project on articles, and project pages
+        query = """
+        SELECT ROW_NUMBER() OVER() nbot,
+                bot
+                FROM `{}.{}`
+        """.format(self.default_db, "bot_list")
+        self.query.run_query(query, self.default_db, "bot_id_list")
+
+        # single encoded bot edits on project articles (ns 01)
+        query = """
+            SELECT t1.user_text AS bot,
+                    t2.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.user_text = t2.bot
+        """.format(self.default_db, "lng_rev_ns01_user_title_wikiproject",
+                   self.default_db, "bot_id_list")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_01")
+
+        query = """
+            SELECT t1.bot AS bot,
+                    t1.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t2.nwikiproject AS nwikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "bot_raw_edits_project_01",
+                   self.default_db, "valid_nwikiprojects")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_01")
+
+        query = """
+            SELECT nbot,
+                    nwikiproject,
+                    wikiproject,
+                    time_index,
+                    COUNT(*) AS bot_edits_01
+                    FROM `{}.{}`
+                    GROUP BY nbot, nwikiproject, wikiproject, time_index
+        """.format(self.default_db, "bot_raw_edits_project_01")
+        self.query.run_query(query, self.default_db, "bot_edits_project_01")
+
+        # single encoded bot edits on project member pages (ns 23)
+        # lng_rev_ns23_member_wikiproject
+        query = """
+            SELECT t1.user_text AS bot,
+                    t2.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.user_text = t2.bot
+                    WHERE t1.user_text != t1.member
+        """.format(self.default_db, "lng_rev_ns23_member_wikiproject",
+                   self.default_db, "bot_id_list")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_23")
+
+        query = """
+            SELECT t1.bot AS bot,
+                    t1.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t2.nwikiproject AS nwikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "bot_raw_edits_project_23",
+                   self.default_db, "valid_nwikiprojects")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_23")
+
+        query = """
+            SELECT nbot,
+                    nwikiproject,
+                    wikiproject,
+                    time_index,
+                    COUNT(*) AS bot_edits_23
+                    FROM `{}.{}`
+                    GROUP BY nbot, nwikiproject, wikiproject, time_index
+        """.format(self.default_db, "bot_raw_edits_project_23")
+        self.query.run_query(query, self.default_db, "bot_edits_project_23")
+
+        # single encoded bot edits on project pages (ns 45)
+        # lng_rev_ns45_user_title_wikiproject
+        query = """
+            SELECT t1.user_text AS bot,
+                    t2.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.user_text = t2.bot
+        """.format(self.default_db, "lng_rev_ns45_user_title_wikiproject",
+                   self.default_db, "bot_id_list")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_45")
+
+        query = """
+            SELECT t1.bot AS bot,
+                    t1.nbot AS nbot,
+                    t1.wikiproject AS wikiproject,
+                    t2.nwikiproject AS nwikiproject,
+                    t1.add_template AS add_template,
+                    t1.contain_template AS contain_template,
+                    t1.time_index AS time_index
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.wikiproject = t2.wikiproject
+        """.format(self.default_db, "bot_raw_edits_project_45",
+                   self.default_db, "valid_nwikiprojects")
+        self.query.run_query(query, self.default_db, "bot_raw_edits_project_45")
+
+        query = """
+            SELECT nbot,
+                    nwikiproject,
+                    wikiproject,
+                    time_index,
+                    COUNT(*) AS bot_edits_45
+                    FROM `{}.{}`
+                    GROUP BY nbot, nwikiproject, wikiproject, time_index
+        """.format(self.default_db, "bot_raw_edits_project_45")
+        self.query.run_query(query, self.default_db, "bot_edits_project_45")
+
+        # join all namespaces together
+        query = """
+            SELECT t1.nbot AS nbot,
+                    t1.nwikiproject AS nwikiproject,
+                    t1.wikiproject AS wikiproject,
+                    t1.time_index AS time_index,
+                    t1.bot_edits_01 AS bot_edits_01,
+                    IFNULL(t2.bot_edits_23, 0) AS bot_edits_23
+                    FROM `{}.{}` AS t1
+                    LEFT JOIN `{}.{}` AS t2
+                    ON t1.nbot = t2.nbot AND t1.nwikiproject = t2.nwikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "bot_edits_project_01",
+                   self.default_db, "bot_edits_project_23")
+        self.query.run_query(query, self.default_db, "bot_edits_project_0123")
+
+        query = """
+            SELECT t1.nbot AS nbot,
+                    t1.nwikiproject AS nwikiproject,
+                    t1.wikiproject AS wikiproject,
+                    t1.time_index AS time_index,
+                    t1.bot_edits_01 AS bot_edits_01,
+                    t1.bot_edits_23 AS bot_edits_23,
+                    IFNULL(t2.bot_edits_45, 0) AS bot_edits_45
+                    FROM `{}.{}` AS t1
+                    LEFT JOIN `{}.{}` AS t2
+                    ON t1.nbot = t2.nbot AND t1.nwikiproject = t2.nwikiproject AND t1.time_index = t2.time_index
+                    ORDER BY t1.nbot, t1.nwikiproject, t1.time_index
+        """.format(self.default_db, "bot_edits_project_0123",
+                   self.default_db, "bot_edits_project_45")
+        self.query.run_query(query, self.default_db, "bot_edits_project_012345")
+
+        # todo: set thresholds to remove data points that have few edits
+
+        # add in project info as CVs
+        query = """
+            SELECT t1.nbot AS nbot,
+                    t1.nwikiproject AS nwikiproject,
+                    t1.wikiproject AS wikiproject,
+                    t1.time_index AS time_index,
+                    t1.bot_edits_01 AS bot_edits_01,
+                    t1.bot_edits_23 AS bot_edits_23,
+                    t1.bot_edits_45 AS bot_edits_45,
+                    t2.active_members AS cv_active_members
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.time_index
+        """.format(self.default_db, "bot_edits_project_012345",
+                   self.default_db, "cv_active_members")
+        self.query.run_query(query, self.default_db, "bot_edits_project_cv1_012345")
+
+        query = """
+            SELECT t1.nbot AS nbot,
+                    t1.nwikiproject AS nwikiproject,
+                    t1.wikiproject AS wikiproject,
+                    t1.time_index AS time_index,
+                    t1.bot_edits_01 AS bot_edits_01,
+                    t1.bot_edits_23 AS bot_edits_23,
+                    t1.bot_edits_45 AS bot_edits_45,
+                    t1.cv_active_members AS cv_active_members,
+                    t2.wp_tenure AS cv_wp_tenure
+                    FROM `{}.{}` AS t1
+                    INNER JOIN `{}.{}` AS t2
+                    ON t1.wikiproject = t2.wikiproject AND t1.time_index = t2.index
+        """.format(self.default_db, "bot_edits_project_cv1_012345",
+                   self.default_db, "cv_project_tenure")
+        self.query.run_query(query, self.default_db, "bot_edits_project_cv_012345")
+
+
 
     def create_user_pools(self):
 
